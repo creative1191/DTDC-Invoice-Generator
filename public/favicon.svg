@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- App Icon Background -->
+  <rect width="128" height="128" rx="28" fill="#0b1c3c" />
+  
+  <!-- Subtle inner border -->
+  <rect x="2" y="2" width="124" height="124" rx="26" fill="none" stroke="#254378" stroke-width="2" />
+
+  <!-- Centered DTDC Logo scaled to fit inside icon -->
+  <g transform="translate(10, 36) scale(0.20)">
+    <defs>
+      <mask id="icon-slice">
+        <rect x="0" y="0" width="540" height="110" fill="#ffffff" />
+        <rect x="0" y="44" width="540" height="15" fill="#000000" />
+      </mask>
+    </defs>
+
+    <g transform="skewX(-14)" transform-origin="270 55">
+      <g fill="#ffffff" mask="url(#icon-slice)">
+        <!-- 1st 'D' -->
+        <path d="M 28 8 L 88 8 C 122 8 138 25 138 55 C 138 85 122 102 88 102 L 28 102 Z M 58 29 L 58 81 L 84 81 C 103 81 110 72 110 55 C 110 38 103 29 84 29 Z" />
+
+        <!-- 'T' -->
+        <path d="M 148 8 L 244 8 L 244 31 L 210 31 L 210 102 L 182 102 L 182 31 L 148 31 Z" />
+
+        <!-- 2nd 'D' -->
+        <path d="M 254 8 L 314 8 C 348 8 364 25 364 55 C 364 85 348 102 314 102 L 254 102 Z M 284 29 L 284 81 L 310 81 C 329 81 336 72 336 55 C 336 38 329 29 310 29 Z" />
+
+        <!-- 'C' -->
+        <path d="M 466 31 L 438 41 C 430 29 417 24 399 24 C 374 24 358 37 358 55 C 358 73 374 86 399 86 C 417 86 430 81 438 69 L 466 79 C 452 96 429 104 399 104 C 357 104 329 80 329 55 C 329 30 357 6 399 6 C 429 6 452 14 466 31 Z" />
+      </g>
+
+      <!-- Signature Red End Accent -->
+      <rect x="478" y="52" width="42" height="44" fill="#e30613" rx="1" />
+    </g>
+  </g>
+</svg>

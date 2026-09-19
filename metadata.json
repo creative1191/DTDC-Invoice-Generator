@@ -1,0 +1,6 @@
+{
+  "name": "DTDC Bill Generator",
+  "description": "Windows 11 desktop DTDC bill generator with OCR extraction, Code128 barcode, 3-copies portrait mode, paper save mode, and instant PDF/PNG print export.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

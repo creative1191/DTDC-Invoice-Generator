@@ -14,17 +14,12 @@ if not exist dist\index.html (
 )
 
 echo.
-echo 2. Installing Python requirements (pywebview, pyinstaller)...
-pip install pywebview pyinstaller
+echo 2. Installing Python requirements (pywebview, pyinstaller, pythonnet)...
+pip install pywebview pyinstaller pythonnet
 
 echo.
-echo 3. Compiling Standalone 100%% Offline Windows Executable...
-pyinstaller --onefile --windowed --name DTDC_Bill_Generator ^
-  --add-data "dist;dist" ^
-  --hidden-import=webview ^
-  --hidden-import=clr ^
-  --collect-all webview ^
-  app_gui.py --clean -y
+echo 3. Compiling Standalone 100%% Offline Windows Executable using dtdc_app.spec...
+pyinstaller dtdc_app.spec --clean -y
 
 echo.
 echo ========================================================

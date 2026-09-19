@@ -16,9 +16,9 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Node dependencies & Build Offline Frontend
+      - name: Install Node dependencies & Build Web App
         run: |
-          npm install
+          npm ci || npm install
           npm run build
 
       - name: Set up Python 3.11
@@ -28,11 +28,23 @@ jobs:
 
       - name: Install Python build tools
         run: |
-          pip install pywebview pyinstaller
+          pip install --upgrade pip
+          pip install pywebview pyinstaller pythonnet
 
-      - name: Build 100% Offline Standalone Windows Executable
+      - name: Build Standalone Windows Executable
         run: |
-          pyinstaller --onefile --windowed --name DTDC_Bill_Generator --add-data "dist;dist" --hidden-import=webview --hidden-import=clr --collect-all webview app_gui.py --clean -y
+          pyinstaller dtdc_app.spec --clean -y
+
+      - name: Verify EXE Exists
+        shell: pwsh
+        run: |
+          if (Test-Path "dist/DTDC_Bill_Generator.exe") {
+            Write-Host "Success: DTDC_Bill_Generator.exe created successfully!"
+            Get-Item "dist/DTDC_Bill_Generator.exe" | Select-Object Name, Length, LastWriteTime
+          } else {
+            Write-Error "dist/DTDC_Bill_Generator.exe not found"
+            exit 1
+          }
 
       - name: Upload Artifact (DTDC_Bill_Generator.exe)
         uses: actions/upload-artifact@v4

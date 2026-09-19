@@ -18,6 +18,17 @@
   <body class="bg-[#f0f3f8] text-[#1c1d1f] antialiased select-none overflow-x-hidden">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      (function() {
+        function pingServer() {
+          try {
+            fetch('/api/heartbeat', { method: 'GET', cache: 'no-store' }).catch(function() {});
+          } catch(e) {}
+        }
+        setInterval(pingServer, 3500);
+        pingServer();
+      })();
+    </script>
   </body>
 </html>
 

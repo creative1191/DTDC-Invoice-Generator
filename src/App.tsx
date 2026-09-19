@@ -241,7 +241,7 @@ export default function App() {
       </div>
 
       {/* 3. Main Workspace Container */}
-      <div className="flex-1 p-3 md:p-4 max-w-[1700px] w-full mx-auto">
+      <div className="flex-1 p-3 md:p-4 max-w-[1920px] w-full mx-auto">
         {/* Tab 2: Windows Build & GitHub Files */}
         {activeTab === 'build-files' && (
           <div className="no-print">

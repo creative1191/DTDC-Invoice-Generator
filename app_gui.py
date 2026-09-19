@@ -4,9 +4,24 @@ import time
 import socket
 import threading
 import functools
+import mimetypes
 import subprocess
 import webbrowser
 from http.server import SimpleHTTPRequestHandler, HTTPServer
+
+# Ensure correct MIME types on Windows
+mimetypes.init()
+mimetypes.add_type('application/javascript', '.js')
+mimetypes.add_type('application/javascript', '.mjs')
+mimetypes.add_type('text/css', '.css')
+mimetypes.add_type('image/svg+xml', '.svg')
+mimetypes.add_type('application/json', '.json')
+mimetypes.add_type('font/woff2', '.woff2')
+mimetypes.add_type('font/woff', '.woff')
+mimetypes.add_type('font/ttf', '.ttf')
+
+# Global timestamp of the last heartbeat received from the web app
+last_heartbeat_time = time.time() + 60.0  # 60 seconds initial grace period
 
 def locate_web_dir():
     """Locate the bundled or local web_app folder containing index.html."""
@@ -50,7 +65,18 @@ class OfflineSpaHandler(SimpleHTTPRequestHandler):
         super().end_headers()
 
     def do_GET(self):
+        global last_heartbeat_time
         clean_path = self.path.split('?')[0].split('#')[0]
+
+        # Heartbeat endpoint to keep the local server alive as long as app is open
+        if clean_path == '/api/heartbeat':
+            last_heartbeat_time = time.time()
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(b'{"status":"ok"}')
+            return
+
         target_path = os.path.join(self.target_dir, clean_path.lstrip('/'))
         
         # If file doesn't exist, fallback to index.html (SPA routing behavior)
@@ -80,24 +106,94 @@ class ThreadedHTTPServer:
         except Exception:
             pass
 
-def launch_app_window(url):
-    """Launch in standalone native window (Edge / Chrome App Mode without browser tabs/URL bar)."""
-    candidates = [
-        os.path.expandvars(r"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"),
-        os.path.expandvars(r"%ProgramFiles%\Microsoft\Edge\Application\msedge.exe"),
-        os.path.expandvars(r"%LocalAppData%\Microsoft\Edge\Application\msedge.exe"),
-        os.path.expandvars(r"%ProgramFiles%\Google\Chrome\Application\chrome.exe"),
-        os.path.expandvars(r"%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"),
-        os.path.expandvars(r"%LocalAppData%\Google\Chrome\Application\chrome.exe"),
+def get_browser_executables():
+    """Detect Edge, Chrome, or Brave executable paths via Windows Registry and standard directories."""
+    candidates = []
+    
+    # 1. Check Windows Registry (App Paths)
+    if sys.platform == 'win32':
+        try:
+            import winreg
+            for app_name in ('msedge.exe', 'chrome.exe', 'brave.exe'):
+                for root in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
+                    try:
+                        key_path = rf"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\{app_name}"
+                        with winreg.OpenKey(root, key_path) as key:
+                            val, _ = winreg.QueryValueEx(key, "")
+                            if val and os.path.isfile(val) and val not in candidates:
+                                candidates.append(val)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
+    # 2. Check Standard Directory Locations
+    sys_drive = os.environ.get('SystemDrive', 'C:')
+    prog_files = os.environ.get('ProgramFiles', rf'{sys_drive}\Program Files')
+    prog_files_x86 = os.environ.get('ProgramFiles(x86)', rf'{sys_drive}\Program Files (x86)')
+    local_app_data = os.environ.get('LOCALAPPDATA', rf'{sys_drive}\Users\Default\AppData\Local')
+
+    direct_paths = [
+        rf"{prog_files_x86}\Microsoft\Edge\Application\msedge.exe",
+        rf"{prog_files}\Microsoft\Edge\Application\msedge.exe",
+        rf"{local_app_data}\Microsoft\Edge\Application\msedge.exe",
+        rf"{prog_files}\Google\Chrome\Application\chrome.exe",
+        rf"{prog_files_x86}\Google\Chrome\Application\chrome.exe",
+        rf"{local_app_data}\Google\Chrome\Application\chrome.exe",
+        rf"{prog_files}\BraveSoftware\Brave-Browser\Application\brave.exe",
+        rf"{prog_files_x86}\BraveSoftware\Brave-Browser\Application\brave.exe",
     ]
+    for p in direct_paths:
+        if os.path.isfile(p) and p not in candidates:
+            candidates.append(p)
+
+    # 3. Check System PATH
+    import shutil
+    for cmd in ('msedge', 'chrome', 'brave'):
+        found = shutil.which(cmd)
+        if found and os.path.isfile(found) and found not in candidates:
+            candidates.append(found)
+
+    return candidates
+
+def launch_app_window(url):
+    """
+    Launch in a 100% Dedicated Desktop Application Window.
+    Uses --app=URL and --new-window without --user-data-dir, guaranteeing
+    a clean window without browser tabs, URL bar, or bookmark bars.
+    """
+    candidates = get_browser_executables()
+    
+    # 1. Direct Executable Launch in App Mode (1920x1080 + Maximized)
     for exe in candidates:
-        if os.path.isfile(exe):
+        try:
+            subprocess.Popen([
+                exe,
+                "--new-window",
+                f"--app={url}",
+                "--window-size=1920,1080",
+                "--start-maximized",
+                "--window-position=0,0"
+            ])
+            return True
+        except Exception:
+            pass
+
+    # 2. Windows Shell 'start' Command (system resolution)
+    if sys.platform == 'win32':
+        for browser_cmd in ('msedge', 'chrome'):
             try:
-                proc = subprocess.Popen([exe, f"--app={url}", "--window-size=1360,880"])
-                return proc
+                res = subprocess.run(
+                    ["cmd.exe", "/c", "start", browser_cmd, "--new-window", f"--app={url}", "--window-size=1920,1080", "--start-maximized"],
+                    capture_output=True,
+                    timeout=3
+                )
+                if res.returncode == 0:
+                    return True
             except Exception:
                 pass
-    return None
+
+    return False
 
 def show_error_dialog(message):
     """Show native Windows message box if on Windows, else print."""
@@ -111,10 +207,12 @@ def show_error_dialog(message):
     print("ERROR:", message)
 
 def main():
+    global last_heartbeat_time
+
     web_dir = locate_web_dir()
     if not web_dir:
         show_error_dialog(
-            "Offline UI files ('index.html') were not found.\n\n"
+            "Offline UI files ('index.html') were not found in bundle.\n\n"
             "Please make sure the web application is built before running."
         )
         return
@@ -122,30 +220,33 @@ def main():
     port = find_free_port()
     server = ThreadedHTTPServer('127.0.0.1', port, web_dir)
     server.start()
-    local_url = f"http://127.0.0.1:{port}"
+    
+    # Small buffer to ensure socket is bound and ready to accept connections
+    time.sleep(0.25)
+    
+    local_url = f"http://127.0.0.1:{port}/"
+    last_heartbeat_time = time.time() + 60.0  # 60s initial grace period
 
-    # Try to launch Edge/Chrome in dedicated App Mode
-    proc = None
+    # Launch dedicated App Mode window (NO tabs, NO URL bar, NO browser UI)
+    launched = False
     if sys.platform == 'win32':
-        proc = launch_app_window(local_url)
+        launched = launch_app_window(local_url)
 
-    if proc:
-        # Wait until user closes the DTDC app window
-        try:
-            proc.wait()
-        except Exception:
-            pass
-    else:
-        # Fallback to default browser
+    if not launched:
+        # Fallback only if no Chromium engine was detected
         webbrowser.open(local_url)
-        # Keep background server alive
-        try:
-            while True:
-                time.sleep(2)
-        except (KeyboardInterrupt, SystemExit):
-            pass
 
-    server.stop()
+    # Server keep-alive loop: stays active as long as app window sends heartbeats
+    try:
+        while True:
+            time.sleep(2)
+            # If the user closed the window and no heartbeat is received for 15s, shutdown cleanly
+            if time.time() - last_heartbeat_time > 15.0:
+                break
+    except (KeyboardInterrupt, SystemExit):
+        pass
+    finally:
+        server.stop()
 
 if __name__ == "__main__":
     main()

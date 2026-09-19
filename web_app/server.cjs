@@ -34,6 +34,9 @@ async function startServer() {
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", time: (/* @__PURE__ */ new Date()).toISOString() });
   });
+  app.get("/api/heartbeat", (req, res) => {
+    res.json({ status: "alive" });
+  });
   app.post("/api/ocr", async (req, res) => {
     try {
       const { imageBase64, mimeType = "image/png" } = req.body;

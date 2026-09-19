@@ -15,6 +15,11 @@ async function startServer() {
     res.json({ status: 'ok', time: new Date().toISOString() });
   });
 
+  // Keep-alive heartbeat
+  app.get('/api/heartbeat', (req, res) => {
+    res.json({ status: 'alive' });
+  });
+
   // Smart AI OCR Extraction endpoint using Gemini API if key is available
   app.post('/api/ocr', async (req, res) => {
     try {

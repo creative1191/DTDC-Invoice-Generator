@@ -17,9 +17,9 @@ export const PythonBuildExport: React.FC = () => {
   const files = {
     workflow: {
       filename: '.github/workflows/build-exe.yml',
-      title: 'GitHub Actions Workflow (Only Windows EXE)',
-      description: 'Automatically builds DTDC_Bill_Generator.exe on GitHub Cloud with Python 3.11 & PyInstaller',
-      content: `name: Build DTDC EXE
+      title: 'GitHub Actions Workflow (100% Offline Windows EXE)',
+      description: 'Automatically compiles full production web app and packages it into standalone offline DTDC_Bill_Generator.exe',
+      content: `name: Build DTDC Offline EXE
 on:
   push:
     branches: [ main, master ]
@@ -29,23 +29,33 @@ jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Node dependencies & Build Offline Frontend
+        run: |
+          npm install
+          npm run build
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Install Python build tools
         run: |
-          pip install reportlab python-barcode Pillow pyinstaller customtkinter
+          pip install pywebview pyinstaller
 
-      - name: Build Windows Executable
+      - name: Build 100% Offline Standalone Windows Executable
         run: |
-          pyinstaller --onefile --windowed --name DTDC_Bill_Generator --add-data "assets;assets" --add-data "generator;generator" --collect-all barcode --hidden-import=barcode --hidden-import=barcode.writer --hidden-import=generator --hidden-import=generator.dtdc_generator --hidden-import=reportlab --hidden-import=PIL --hidden-import=customtkinter app_gui.py --clean -y
+          pyinstaller --onefile --windowed --name DTDC_Bill_Generator --add-data "dist;dist" --hidden-import=webview --hidden-import=clr --collect-all webview app_gui.py --clean -y
 
-      - name: Upload Artifact
+      - name: Upload Artifact (DTDC_Bill_Generator.exe)
         uses: actions/upload-artifact@v4
         with:
           name: DTDC_Bill_Generator-Windows-EXE
@@ -55,74 +65,172 @@ jobs:
     bat: {
       filename: 'build_exe_windows.bat',
       title: 'Local Windows Build Batch Script',
-      description: 'Double-click to compile DTDC_Bill_Generator.exe locally on your Windows PC',
+      description: 'Double-click on Windows to compile 100% offline DTDC_Bill_Generator.exe',
       content: `@echo off
 echo ========================================================
 echo       DTDC Bill Generator - Windows EXE Builder
+echo               (100%% Offline Desktop App)
 echo ========================================================
-echo Installing required packages...
-pip install reportlab python-barcode Pillow pyinstaller customtkinter
+
+echo 1. Checking / Building Frontend assets...
+if not exist dist\\index.html (
+  echo Building production web assets...
+  call npm install
+  call npm run build
+) else (
+  echo Production assets found in dist\\
+)
 
 echo.
-echo Building Standalone Windows Executable (.exe)...
+echo 2. Installing Python requirements (pywebview, pyinstaller)...
+pip install pywebview pyinstaller
+
+echo.
+echo 3. Compiling Standalone 100%% Offline Windows Executable...
 pyinstaller --onefile --windowed --name DTDC_Bill_Generator ^
-  --add-data "assets;assets" ^
-  --add-data "generator;generator" ^
-  --collect-all barcode ^
-  --hidden-import=barcode ^
-  --hidden-import=barcode.writer ^
-  --hidden-import=generator ^
-  --hidden-import=generator.dtdc_generator ^
-  --hidden-import=reportlab ^
-  --hidden-import=PIL ^
-  --hidden-import=customtkinter ^
+  --add-data "dist;dist" ^
+  --hidden-import=webview ^
+  --hidden-import=clr ^
+  --collect-all webview ^
   app_gui.py --clean -y
 
 echo.
 echo ========================================================
-echo  BUILD COMPLETE! Check: dist\\DTDC_Bill_Generator.exe
+echo  BUILD COMPLETE!
+echo  Your 100%% Offline App is ready at: dist\\DTDC_Bill_Generator.exe
 echo ========================================================
 pause
 `,
     },
     requirements: {
       filename: 'requirements.txt',
-      title: 'Unpinned Requirements for PyInstaller',
-      description: 'Ensures zero version conflicts on Windows Python 3.11',
-      content: `reportlab
-python-barcode
-Pillow
-pyinstaller
-customtkinter
+      title: 'Python Requirements for Standalone Offline EXE',
+      description: 'Required packages to build offline desktop application with native WebView2',
+      content: `pyinstaller
+pywebview
 `,
     },
     gui: {
       filename: 'app_gui.py',
-      title: 'GUI V8 - Premium Windows 11 Desktop Code',
-      description: 'Features SnipTool Win+Shift+S paste, CTkScrollableFrame, Paper Save Mode & Direct Print',
-      content: `"""
-DTDC Bill Generator - Premium Windows 11 GUI V8
-With SnipTool Clipboard Auto-Detect, CTkScrollableFrame, and Paper Save Mode
-"""
-import os
+      title: 'app_gui.py - 100% Offline Desktop Runner',
+      description: 'Embeds the complete UI locally, binds to localhost, and opens a native desktop window without internet',
+      content: `import os
 import sys
-import json
-from pathlib import Path
-from datetime import datetime
+import threading
+import socket
+import functools
+from http.server import SimpleHTTPRequestHandler, HTTPServer
 
-try:
-    import customtkinter as ctk
-    from PIL import Image, ImageTk, ImageGrab
-except ImportError:
-    import tkinter as ctk
-    from tkinter import messagebox
-    print("Running in standard Tkinter fallback mode")
+def locate_dist_dir():
+    candidates = []
+    if getattr(sys, 'frozen', False):
+        base_dir = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
+        candidates.append(os.path.join(base_dir, 'dist'))
+        candidates.append(base_dir)
+    else:
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        candidates.append(os.path.join(base_dir, 'dist'))
+        candidates.append(base_dir)
 
-# Core GUI implementation handles:
-# 1. Clipboard SnipTool paste (Ctrl+V)
-# 2. Direct print with os.startfile(print) fallback
-# 3. Paper save mode (only Sender copy filled)
-# 4. Barcode Code128 generation with ReportLab
+    for c in candidates:
+        if os.path.isfile(os.path.join(c, 'index.html')):
+            return c
+    return None
+
+def find_free_port():
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(('127.0.0.1', 0))
+    port = s.getsockname()[1]
+    s.close()
+    return port
+
+class OfflineSpaHandler(SimpleHTTPRequestHandler):
+    def __init__(self, *args, directory=None, **kwargs):
+        self.target_dir = directory
+        super().__init__(*args, directory=directory, **kwargs)
+
+    def log_message(self, format, *args):
+        pass
+
+    def end_headers(self):
+        self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        super().end_headers()
+
+    def do_GET(self):
+        clean_path = self.path.split('?')[0].split('#')[0]
+        target_path = os.path.join(self.target_dir, clean_path.lstrip('/'))
+        if not os.path.exists(target_path) or os.path.isdir(target_path):
+            index_path = os.path.join(self.target_dir, 'index.html')
+            if os.path.isfile(index_path):
+                self.path = '/index.html'
+        return super().do_GET()
+
+class ThreadedHTTPServer:
+    def __init__(self, host, port, directory):
+        self.host = host
+        self.port = port
+        self.directory = directory
+        handler = functools.partial(OfflineSpaHandler, directory=directory)
+        self.server = HTTPServer((host, port), handler)
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+
+    def start(self):
+        self.thread.start()
+
+    def stop(self):
+        try:
+            self.server.shutdown()
+            self.server.server_close()
+        except Exception:
+            pass
+
+def main():
+    dist_dir = locate_dist_dir()
+    if not dist_dir:
+        import tkinter as tk
+        from tkinter import messagebox
+        root = tk.Tk()
+        root.withdraw()
+        messagebox.showerror("Error", "Offline files ('dist/index.html') not found. Run 'npm run build' first.")
+        return
+
+    port = find_free_port()
+    server = ThreadedHTTPServer('127.0.0.1', port, dist_dir)
+    server.start()
+    local_url = f"http://127.0.0.1:{port}"
+
+    try:
+        import webview
+        window = webview.create_window(
+            title="DTDC Bill Generator - Maa Sharda Enterprises",
+            url=local_url,
+            width=1340,
+            height=880,
+            min_size=(960, 640),
+            text_select=True
+        )
+        webview.start()
+        server.stop()
+        return
+    except Exception:
+        pass
+
+    import webbrowser
+    webbrowser.open(local_url)
+    import tkinter as tk
+    root = tk.Tk()
+    root.title("DTDC Bill Generator - 100% Offline")
+    root.geometry("450x250")
+    tk.Label(root, text="DTDC Bill Generator is running 100% Offline!", font=("Arial", 11, "bold")).pack(pady=20)
+    tk.Label(root, text=f"Local Address: {local_url}", font=("Courier", 10)).pack(pady=5)
+    tk.Button(root, text="Re-open in Browser", command=lambda: webbrowser.open(local_url)).pack(pady=10)
+    root.protocol("WM_DELETE_WINDOW", lambda: (server.stop(), root.destroy()))
+    root.mainloop()
+    server.stop()
+
+if __name__ == "__main__":
+    main()
 `,
     },
     generator: {

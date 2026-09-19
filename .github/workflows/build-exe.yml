@@ -1,4 +1,4 @@
-name: Build DTDC EXE
+name: Build DTDC Offline EXE
 on:
   push:
     branches: [ main, master ]
@@ -8,23 +8,33 @@ jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Node dependencies & Build Offline Frontend
+        run: |
+          npm install
+          npm run build
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Install Python build tools
         run: |
-          pip install reportlab python-barcode Pillow pyinstaller customtkinter
+          pip install pywebview pyinstaller
 
-      - name: Build Windows Executable
+      - name: Build 100% Offline Standalone Windows Executable
         run: |
-          pyinstaller --onefile --windowed --name DTDC_Bill_Generator --add-data "public;assets" --collect-all barcode --hidden-import=barcode --hidden-import=barcode.writer --hidden-import=reportlab --hidden-import=PIL --hidden-import=customtkinter app_gui.py --clean -y
+          pyinstaller --onefile --windowed --name DTDC_Bill_Generator --add-data "dist;dist" --hidden-import=webview --hidden-import=clr --collect-all webview app_gui.py --clean -y
 
-      - name: Upload Artifact
+      - name: Upload Artifact (DTDC_Bill_Generator.exe)
         uses: actions/upload-artifact@v4
         with:
           name: DTDC_Bill_Generator-Windows-EXE

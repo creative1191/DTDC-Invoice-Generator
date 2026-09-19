@@ -1,24 +1,34 @@
 @echo off
 echo ========================================================
 echo       DTDC Bill Generator - Windows EXE Builder
+echo               (100%% Offline Desktop App)
 echo ========================================================
-echo Installing required packages...
-pip install -r requirements.txt
+
+echo 1. Checking / Building Frontend assets...
+if not exist dist\index.html (
+  echo Building production web assets...
+  call npm install
+  call npm run build
+) else (
+  echo Production assets found in dist\
+)
 
 echo.
-echo Building Standalone Windows Executable (.exe)...
+echo 2. Installing Python requirements (pywebview, pyinstaller)...
+pip install pywebview pyinstaller
+
+echo.
+echo 3. Compiling Standalone 100%% Offline Windows Executable...
 pyinstaller --onefile --windowed --name DTDC_Bill_Generator ^
-  --add-data "public;assets" ^
-  --collect-all barcode ^
-  --hidden-import=barcode ^
-  --hidden-import=barcode.writer ^
-  --hidden-import=reportlab ^
-  --hidden-import=PIL ^
-  --hidden-import=customtkinter ^
+  --add-data "dist;dist" ^
+  --hidden-import=webview ^
+  --hidden-import=clr ^
+  --collect-all webview ^
   app_gui.py --clean -y
 
 echo.
 echo ========================================================
-echo  BUILD COMPLETE! Check: dist\DTDC_Bill_Generator.exe
+echo  BUILD COMPLETE!
+echo  Your 100%% Offline App is ready at: dist\DTDC_Bill_Generator.exe
 echo ========================================================
 pause

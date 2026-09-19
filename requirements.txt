@@ -1,5 +1,2 @@
-reportlab
-python-barcode
-Pillow
 pyinstaller
-customtkinter
+pywebview

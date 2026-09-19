@@ -3,6 +3,8 @@ import sys
 import threading
 import socket
 import functools
+import subprocess
+import webbrowser
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 
 def locate_dist_dir():
@@ -48,7 +50,7 @@ class OfflineSpaHandler(SimpleHTTPRequestHandler):
         clean_path = self.path.split('?')[0].split('#')[0]
         target_path = os.path.join(self.target_dir, clean_path.lstrip('/'))
         
-        # If file doesn't exist, fallback to index.html (SPA behavior)
+        # If file doesn't exist, fallback to index.html (SPA routing behavior)
         if not os.path.exists(target_path) or os.path.isdir(target_path):
             index_path = os.path.join(self.target_dir, 'index.html')
             if os.path.isfile(index_path):
@@ -75,6 +77,25 @@ class ThreadedHTTPServer:
         except Exception:
             pass
 
+def launch_standalone_app_window(url):
+    """Launch in standalone native window (Edge / Chrome App Mode without browser tabs/URL bar)."""
+    candidates = [
+        os.path.expandvars(r"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"),
+        os.path.expandvars(r"%ProgramFiles%\Microsoft\Edge\Application\msedge.exe"),
+        os.path.expandvars(r"%LocalAppData%\Microsoft\Edge\Application\msedge.exe"),
+        os.path.expandvars(r"%ProgramFiles%\Google\Chrome\Application\chrome.exe"),
+        os.path.expandvars(r"%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"),
+        os.path.expandvars(r"%LocalAppData%\Google\Chrome\Application\chrome.exe"),
+    ]
+    for exe in candidates:
+        if os.path.isfile(exe):
+            try:
+                subprocess.Popen([exe, f"--app={url}", "--window-size=1360,880"])
+                return True
+            except Exception:
+                pass
+    return False
+
 def main():
     dist_dir = locate_dist_dir()
     if not dist_dir:
@@ -84,8 +105,8 @@ def main():
         root.withdraw()
         messagebox.showerror(
             "DTDC Bill Generator - Error",
-            "Offline UI files ('dist/index.html') were not found.\n\n"
-            "Please make sure the app is built using 'npm run build' before running."
+            "Offline UI files ('dist/index.html') were not found in bundle.\n\n"
+            "Please make sure npm run build was executed before packaging."
         )
         return
 
@@ -94,41 +115,20 @@ def main():
     server.start()
     local_url = f"http://127.0.0.1:{port}"
 
-    # Try pywebview first for 100% native desktop application experience
-    use_webview = False
-    try:
-        import webview
-        use_webview = True
-    except ImportError:
-        use_webview = False
+    # Try to launch in native standalone window
+    launched = False
+    if sys.platform == 'win32':
+        launched = launch_standalone_app_window(local_url)
 
-    if use_webview:
-        try:
-            window = webview.create_window(
-                title="DTDC Bill Generator - Maa Sharda Enterprises",
-                url=local_url,
-                width=1340,
-                height=880,
-                min_size=(960, 640),
-                confirm_close=False,
-                text_select=True,
-                zoomable=True
-            )
-            webview.start(private_mode=False)
-            server.stop()
-            return
-        except Exception as e:
-            print(f"pywebview launch note: {e}, falling back to browser controller.")
+    if not launched:
+        webbrowser.open(local_url)
 
-    # Fallback to default browser + Tkinter controller
-    import webbrowser
-    webbrowser.open(local_url)
-
+    # Controller Window with minimal status
     import tkinter as tk
 
     root = tk.Tk()
     root.title("DTDC Bill Generator - Maa Sharda Enterprises")
-    root.geometry("520x360")
+    root.geometry("500x340")
     root.configure(bg="#f8fafc")
     root.resizable(False, False)
 
@@ -141,25 +141,26 @@ def main():
     sub_lbl.pack(pady=(0, 10))
 
     # Body
-    body = tk.Frame(root, bg="#ffffff", padx=20, pady=20, relief="solid", bd=1)
+    body = tk.Frame(root, bg="#ffffff", padx=20, pady=18, relief="solid", bd=1)
     body.pack(fill="both", expand=True, padx=20, pady=15)
 
     status_icon = tk.Label(body, text="● SERVER ACTIVE (100% OFFLINE)", font=("Arial", 10, "bold"), fg="#16a34a", bg="#ffffff")
     status_icon.pack(anchor="w")
 
     url_lbl = tk.Label(body, text=f"Local Offline Address: {local_url}", font=("Courier", 10), fg="#334155", bg="#f1f5f9", padx=8, pady=4)
-    url_lbl.pack(fill="x", pady=(8, 15))
+    url_lbl.pack(fill="x", pady=(8, 12))
 
-    tip_lbl = tk.Label(body, text="✓ No Internet or Wi-Fi required\n✓ Instant 3-Copies Print (Ctrl+P)\n✓ Bold Addresses & Barcode ready", font=("Arial", 9), fg="#475569", bg="#ffffff", justify="left")
+    tip_lbl = tk.Label(body, text="✓ Working 100% Offline (No Internet / Wi-Fi needed)\n✓ Fast 3-Copies Print Ready (Press Ctrl+P)\n✓ Bold Addresses & Barcode ready", font=("Arial", 9), fg="#475569", bg="#ffffff", justify="left")
     tip_lbl.pack(anchor="w", pady=(0, 15))
 
     btn_frame = tk.Frame(body, bg="#ffffff")
     btn_frame.pack(fill="x")
 
     def re_open():
-        webbrowser.open(local_url)
+        if not (sys.platform == 'win32' and launch_standalone_app_window(local_url)):
+            webbrowser.open(local_url)
 
-    btn_open = tk.Button(btn_frame, text="Re-open in Browser", font=("Arial", 10, "bold"), bg="#0284c7", fg="#ffffff", padx=12, pady=6, cursor="hand2", relief="flat", command=re_open)
+    btn_open = tk.Button(btn_frame, text="Re-Open App Window", font=("Arial", 10, "bold"), bg="#0284c7", fg="#ffffff", padx=12, pady=6, cursor="hand2", relief="flat", command=re_open)
     btn_open.pack(side="left", padx=(0, 10))
 
     def on_close():

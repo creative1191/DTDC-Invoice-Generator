@@ -4,29 +4,18 @@ import sys
 
 block_cipher = None
 
-# Collect all files from dist directory
-dist_dir = os.path.abspath('dist')
-added_files = []
-if os.path.isdir(dist_dir):
-    for root, dirs, files in os.walk(dist_dir):
-        for f in files:
-            full_path = os.path.join(root, f)
-            rel_dir = os.path.relpath(root, dist_dir)
-            target_sub = os.path.join('dist', rel_dir) if rel_dir != '.' else 'dist'
-            added_files.append((full_path, target_sub))
-
 a = Analysis(
     ['app_gui.py'],
     pathex=[],
     binaries=[],
-    datas=added_files,
+    datas=[('dist', 'dist')],
     hiddenimports=[
-        'webview',
-        'clr',
         'http.server',
         'socket',
         'threading',
-        'webbrowser'
+        'subprocess',
+        'webbrowser',
+        'tkinter',
     ],
     hookspath=[],
     hooksconfig={},

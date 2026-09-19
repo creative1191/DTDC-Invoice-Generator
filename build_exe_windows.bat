@@ -4,21 +4,21 @@ echo       DTDC Bill Generator - Windows EXE Builder
 echo               (100%% Offline Desktop App)
 echo ========================================================
 
-echo 1. Checking / Building Frontend assets...
+echo 1. Checking / Building Web Frontend assets...
 if not exist dist\index.html (
-  echo Building production web assets...
-  call npm install
+  echo Installing dependencies and building production web assets...
+  call npm install --legacy-peer-deps
   call npm run build
 ) else (
   echo Production assets found in dist\
 )
 
 echo.
-echo 2. Installing Python requirements (pywebview, pyinstaller, pythonnet)...
-pip install pywebview pyinstaller pythonnet
+echo 2. Installing PyInstaller...
+pip install pyinstaller
 
 echo.
-echo 3. Compiling Standalone 100%% Offline Windows Executable using dtdc_app.spec...
+echo 3. Compiling Standalone 100%% Offline Windows Executable...
 pyinstaller dtdc_app.spec --clean -y
 
 echo.

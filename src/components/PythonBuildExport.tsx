@@ -37,9 +37,9 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Node dependencies & Build Offline Frontend
+      - name: Install Node dependencies & Build Web App
         run: |
-          npm install
+          npm install --legacy-peer-deps
           npm run build
 
       - name: Set up Python 3.11
@@ -47,13 +47,25 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Python build tools
+      - name: Install PyInstaller
         run: |
-          pip install pywebview pyinstaller
+          python -m pip install --upgrade pip
+          pip install pyinstaller
 
-      - name: Build 100% Offline Standalone Windows Executable
+      - name: Build Standalone Windows Executable
         run: |
-          pyinstaller --onefile --windowed --name DTDC_Bill_Generator --add-data "dist;dist" --hidden-import=webview --hidden-import=clr --collect-all webview app_gui.py --clean -y
+          pyinstaller dtdc_app.spec --clean -y
+
+      - name: Verify EXE Exists
+        shell: pwsh
+        run: |
+          if (Test-Path "dist/DTDC_Bill_Generator.exe") {
+            Write-Host "Success: DTDC_Bill_Generator.exe was built successfully!"
+            Get-Item "dist/DTDC_Bill_Generator.exe" | Format-List Name, Length, LastWriteTime
+          } else {
+            Write-Error "Error: dist/DTDC_Bill_Generator.exe was not found"
+            exit 1
+          }
 
       - name: Upload Artifact (DTDC_Bill_Generator.exe)
         uses: actions/upload-artifact@v4
@@ -72,27 +84,22 @@ echo       DTDC Bill Generator - Windows EXE Builder
 echo               (100%% Offline Desktop App)
 echo ========================================================
 
-echo 1. Checking / Building Frontend assets...
+echo 1. Checking / Building Web Frontend assets...
 if not exist dist\\index.html (
-  echo Building production web assets...
-  call npm install
+  echo Installing dependencies and building production web assets...
+  call npm install --legacy-peer-deps
   call npm run build
 ) else (
   echo Production assets found in dist\\
 )
 
 echo.
-echo 2. Installing Python requirements (pywebview, pyinstaller)...
-pip install pywebview pyinstaller
+echo 2. Installing PyInstaller...
+pip install pyinstaller
 
 echo.
 echo 3. Compiling Standalone 100%% Offline Windows Executable...
-pyinstaller --onefile --windowed --name DTDC_Bill_Generator ^
-  --add-data "dist;dist" ^
-  --hidden-import=webview ^
-  --hidden-import=clr ^
-  --collect-all webview ^
-  app_gui.py --clean -y
+pyinstaller dtdc_app.spec --clean -y
 
 echo.
 echo ========================================================
@@ -105,9 +112,8 @@ pause
     requirements: {
       filename: 'requirements.txt',
       title: 'Python Requirements for Standalone Offline EXE',
-      description: 'Required packages to build offline desktop application with native WebView2',
+      description: 'Required packages to build offline desktop application',
       content: `pyinstaller
-pywebview
 `,
     },
     gui: {

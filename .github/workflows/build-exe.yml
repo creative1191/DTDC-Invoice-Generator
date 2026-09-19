@@ -18,7 +18,7 @@ jobs:
 
       - name: Install Node dependencies & Build Web App
         run: |
-          npm ci || npm install
+          npm install --legacy-peer-deps
           npm run build
 
       - name: Set up Python 3.11
@@ -26,10 +26,10 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Python build tools
+      - name: Install PyInstaller
         run: |
-          pip install --upgrade pip
-          pip install pywebview pyinstaller pythonnet
+          python -m pip install --upgrade pip
+          pip install pyinstaller
 
       - name: Build Standalone Windows Executable
         run: |
@@ -39,10 +39,10 @@ jobs:
         shell: pwsh
         run: |
           if (Test-Path "dist/DTDC_Bill_Generator.exe") {
-            Write-Host "Success: DTDC_Bill_Generator.exe created successfully!"
-            Get-Item "dist/DTDC_Bill_Generator.exe" | Select-Object Name, Length, LastWriteTime
+            Write-Host "Success: DTDC_Bill_Generator.exe was built successfully!"
+            Get-Item "dist/DTDC_Bill_Generator.exe" | Format-List Name, Length, LastWriteTime
           } else {
-            Write-Error "dist/DTDC_Bill_Generator.exe not found"
+            Write-Error "Error: dist/DTDC_Bill_Generator.exe was not found"
             exit 1
           }
 

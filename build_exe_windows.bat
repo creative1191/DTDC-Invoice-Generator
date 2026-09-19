@@ -4,18 +4,24 @@ echo       DTDC Bill Generator - Windows EXE Builder
 echo               (100%% Offline Desktop App)
 echo ========================================================
 
-echo 1. Checking / Building Web Frontend assets...
-if not exist dist\index.html (
-  echo Installing dependencies and building production web assets...
-  call npm install --legacy-peer-deps
-  call npm run build
+echo 1. Checking / Syncing Web Frontend assets...
+if not exist web_app\index.html (
+  if exist dist\index.html (
+    echo Syncing from dist\ to web_app\...
+    xcopy /E /I /Y dist web_app
+  ) else (
+    echo Building web assets...
+    call npm install --legacy-peer-deps
+    call npm run build
+    xcopy /E /I /Y dist web_app
+  )
 ) else (
-  echo Production assets found in dist\
+  echo Pre-built offline web assets verified in web_app\
 )
 
 echo.
 echo 2. Installing PyInstaller...
-python -m pip install pyinstaller
+python -m pip install --upgrade pyinstaller
 
 echo.
 echo 3. Compiling Standalone 100%% Offline Windows Executable...

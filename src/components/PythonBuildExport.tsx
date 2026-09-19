@@ -32,32 +32,30 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install Node dependencies & Build Web App
-        shell: bash
-        run: |
-          npm install --legacy-peer-deps
-          npm run build
-
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
       - name: Install PyInstaller
-        shell: bash
         run: |
           python -m pip install --upgrade pip
           pip install pyinstaller
 
       - name: Build Standalone Windows Executable
-        shell: bash
         run: |
           python build_exe.py
+
+      - name: Verify EXE Output
+        shell: pwsh
+        run: |
+          if (Test-Path "dist_exe/DTDC_Bill_Generator.exe") {
+            Write-Host "DTDC_Bill_Generator.exe generated successfully!"
+            Get-Item "dist_exe/DTDC_Bill_Generator.exe" | Format-List Name, Length
+          } else {
+            Write-Error "dist_exe/DTDC_Bill_Generator.exe was not found"
+            exit 1
+          }
 
       - name: Upload Artifact (DTDC_Bill_Generator.exe)
         uses: actions/upload-artifact@v4
@@ -76,18 +74,24 @@ echo       DTDC Bill Generator - Windows EXE Builder
 echo               (100%% Offline Desktop App)
 echo ========================================================
 
-echo 1. Checking / Building Web Frontend assets...
-if not exist dist\\index.html (
-  echo Installing dependencies and building production web assets...
-  call npm install --legacy-peer-deps
-  call npm run build
+echo 1. Checking / Syncing Web Frontend assets...
+if not exist web_app\\index.html (
+  if exist dist\\index.html (
+    echo Syncing from dist\\ to web_app...
+    xcopy /E /I /Y dist web_app
+  ) else (
+    echo Building web assets...
+    call npm install --legacy-peer-deps
+    call npm run build
+    xcopy /E /I /Y dist web_app
+  )
 ) else (
-  echo Production assets found in dist\\
+  echo Pre-built offline web assets verified in web_app\\
 )
 
 echo.
 echo 2. Installing PyInstaller...
-python -m pip install pyinstaller
+python -m pip install --upgrade pyinstaller
 
 echo.
 echo 3. Compiling Standalone 100%% Offline Windows Executable...

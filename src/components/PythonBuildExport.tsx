@@ -38,6 +38,7 @@ jobs:
           node-version: '20'
 
       - name: Install Node dependencies & Build Web App
+        shell: bash
         run: |
           npm install --legacy-peer-deps
           npm run build
@@ -48,30 +49,21 @@ jobs:
           python-version: '3.11'
 
       - name: Install PyInstaller
+        shell: bash
         run: |
           python -m pip install --upgrade pip
           pip install pyinstaller
 
       - name: Build Standalone Windows Executable
+        shell: bash
         run: |
-          pyinstaller dtdc_app.spec --clean -y
-
-      - name: Verify EXE Exists
-        shell: pwsh
-        run: |
-          if (Test-Path "dist/DTDC_Bill_Generator.exe") {
-            Write-Host "Success: DTDC_Bill_Generator.exe was built successfully!"
-            Get-Item "dist/DTDC_Bill_Generator.exe" | Format-List Name, Length, LastWriteTime
-          } else {
-            Write-Error "Error: dist/DTDC_Bill_Generator.exe was not found"
-            exit 1
-          }
+          python build_exe.py
 
       - name: Upload Artifact (DTDC_Bill_Generator.exe)
         uses: actions/upload-artifact@v4
         with:
           name: DTDC_Bill_Generator-Windows-EXE
-          path: dist/DTDC_Bill_Generator.exe
+          path: dist_exe/DTDC_Bill_Generator.exe
 `,
     },
     bat: {
@@ -95,16 +87,16 @@ if not exist dist\\index.html (
 
 echo.
 echo 2. Installing PyInstaller...
-pip install pyinstaller
+python -m pip install pyinstaller
 
 echo.
 echo 3. Compiling Standalone 100%% Offline Windows Executable...
-pyinstaller dtdc_app.spec --clean -y
+python build_exe.py
 
 echo.
 echo ========================================================
 echo  BUILD COMPLETE!
-echo  Your 100%% Offline App is ready at: dist\\DTDC_Bill_Generator.exe
+echo  Your 100%% Offline App is ready at: dist_exe\\DTDC_Bill_Generator.exe
 echo ========================================================
 pause
 `,

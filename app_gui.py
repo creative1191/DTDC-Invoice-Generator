@@ -8,14 +8,16 @@ import webbrowser
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 
 def locate_dist_dir():
-    """Locate the bundled or local dist folder containing index.html."""
+    """Locate the bundled or local web folder containing index.html."""
     candidates = []
     if getattr(sys, 'frozen', False):
         base_dir = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
+        candidates.append(os.path.join(base_dir, 'web_app'))
         candidates.append(os.path.join(base_dir, 'dist'))
         candidates.append(base_dir)
     else:
         base_dir = os.path.dirname(os.path.abspath(__file__))
+        candidates.append(os.path.join(base_dir, 'web_app'))
         candidates.append(os.path.join(base_dir, 'dist'))
         candidates.append(base_dir)
 

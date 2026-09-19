@@ -15,15 +15,15 @@ if not exist dist\index.html (
 
 echo.
 echo 2. Installing PyInstaller...
-pip install pyinstaller
+python -m pip install pyinstaller
 
 echo.
 echo 3. Compiling Standalone 100%% Offline Windows Executable...
-pyinstaller dtdc_app.spec --clean -y
+python build_exe.py
 
 echo.
 echo ========================================================
 echo  BUILD COMPLETE!
-echo  Your 100%% Offline App is ready at: dist\DTDC_Bill_Generator.exe
+echo  Your 100%% Offline App is ready at: dist_exe\DTDC_Bill_Generator.exe
 echo ========================================================
 pause

@@ -133,12 +133,12 @@ class ReusableHTTPServer(HTTPServer):
     allow_reuse_address = True
 
 class ThreadedHTTPServer:
-    def __init__(self, host, port, directory):
+    def __init__(self, host, directory, port=0):
         self.host = host
-        self.port = port
         self.directory = directory
         handler = functools.partial(OfflineSpaHandler, directory=directory)
         self.server = ReusableHTTPServer((host, port), handler)
+        self.port = self.server.server_address[1]
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
 
     def start(self):
@@ -279,9 +279,9 @@ def main():
         )
         return
 
-    port = find_free_port()
-    server = ThreadedHTTPServer('127.0.0.1', port, web_dir)
+    server = ThreadedHTTPServer('127.0.0.1', web_dir, port=0)
     server.start()
+    port = server.port
     
     # Small buffer to ensure socket is bound and ready to accept connections
     time.sleep(0.3)

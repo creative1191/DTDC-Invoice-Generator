@@ -88,11 +88,41 @@ def main():
     final_path = os.path.join(dist_exe_dir, exe_name)
     if os.path.exists(final_path):
         size_mb = os.path.getsize(final_path) / (1024 * 1024)
+        
+        # Clean up temporary PyInstaller build artifacts to keep repo small
+        try:
+            if os.path.exists(build_work_dir):
+                shutil.rmtree(build_work_dir, ignore_errors=True)
+            spec_file = os.path.join(base_dir, "DTDC_Bill_Generator.spec")
+            if os.path.exists(spec_file):
+                os.remove(spec_file)
+        except Exception:
+            pass
+
         print("\n========================================================")
         print(f" SUCCESS: {exe_name} created successfully!")
         print(f" Path: {final_path}")
         print(f" Size: {size_mb:.2f} MB")
         print("========================================================")
+
+        # Create Windows Desktop shortcut if running on a local desktop machine (not in CI)
+        if sys.platform == "win32" and not os.environ.get("CI") and not os.environ.get("GITHUB_ACTIONS"):
+            try:
+                desktop = os.path.join(os.path.expanduser("~"), "Desktop")
+                if os.path.isdir(desktop):
+                    shortcut_path = os.path.join(desktop, "DTDC Bill Generator.lnk")
+                    ps_cmd = (
+                        f'$WshShell = New-Object -comObject WScript.Shell; '
+                        f'$Shortcut = $WshShell.CreateShortcut("{shortcut_path}"); '
+                        f'$Shortcut.TargetPath = "{final_path}"; '
+                        f'$Shortcut.WorkingDirectory = "{dist_exe_dir}"; '
+                        f'$Shortcut.Save()'
+                    )
+                    subprocess.run(["powershell", "-NoProfile", "-Command", ps_cmd], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    if os.path.exists(shortcut_path):
+                        print(f" Desktop Shortcut created: {shortcut_path}")
+            except Exception:
+                pass
     else:
         print(f"\nERROR: {exe_name} was not found in {dist_exe_dir}")
         if os.path.exists(dist_exe_dir):

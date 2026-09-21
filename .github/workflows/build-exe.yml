@@ -18,7 +18,9 @@ jobs:
 
       - name: Install dependencies
         shell: bash
-        run: npm install --legacy-peer-deps
+        run: |
+          npm install --legacy-peer-deps --include=optional
+          npm install @rolldown/binding-win32-x64-msvc --no-save || true
 
       - name: Build web frontend assets
         shell: bash

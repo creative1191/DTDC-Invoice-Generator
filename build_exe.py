@@ -56,9 +56,14 @@ def main():
         print("  ", a)
     print()
     
-    PyInstaller.__main__.run(args)
+    try:
+        PyInstaller.__main__.run(args)
+    except SystemExit as e:
+        if e.code not in (0, None):
+            print(f"PyInstaller failed with exit code: {e.code}")
+            sys.exit(e.code)
     
-    exe_name = "DTDC_Bill_Generator.exe" if sys.platform == "win32" else "DTDC_Bill_Generator"
+    exe_name = "DTDC_Bill_Generator.exe" if sys.platform == "win32" or os.name == "nt" else "DTDC_Bill_Generator"
     final_path = os.path.join(dist_exe_dir, exe_name)
     if os.path.exists(final_path):
         size_mb = os.path.getsize(final_path) / (1024 * 1024)
@@ -68,10 +73,11 @@ def main():
         print(f" Size: {size_mb:.2f} MB")
         print("========================================================")
     else:
-        print(f"\nCompleted PyInstaller run. Files in {dist_exe_dir}:")
+        print(f"\nERROR: {exe_name} was not found in {dist_exe_dir}")
         if os.path.exists(dist_exe_dir):
             for item in os.listdir(dist_exe_dir):
                 print(f" - {item}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

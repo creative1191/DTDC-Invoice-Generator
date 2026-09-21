@@ -1,5 +1,12 @@
 import os
 import sys
+
+# Safe stdout/stderr fallback for PyInstaller --windowed / --noconsole mode on Windows
+if getattr(sys, 'stdout', None) is None:
+    sys.stdout = open(os.devnull, 'w')
+if getattr(sys, 'stderr', None) is None:
+    sys.stderr = open(os.devnull, 'w')
+
 import time
 import socket
 import threading

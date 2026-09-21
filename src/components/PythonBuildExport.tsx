@@ -61,15 +61,16 @@ jobs:
         run: python build_exe.py
 
       - name: Verify EXE Output
-        shell: pwsh
+        shell: bash
         run: |
-          if (Test-Path "dist_exe/DTDC_Bill_Generator.exe") {
-            Write-Host "DTDC_Bill_Generator.exe generated successfully!"
-            Get-Item "dist_exe/DTDC_Bill_Generator.exe" | Format-List Name, Length
-          } else {
-            Write-Error "dist_exe/DTDC_Bill_Generator.exe was not found"
+          if [ -f "dist_exe/DTDC_Bill_Generator.exe" ]; then
+            echo "DTDC_Bill_Generator.exe generated successfully!"
+            ls -lh dist_exe/DTDC_Bill_Generator.exe
+          else
+            echo "ERROR: dist_exe/DTDC_Bill_Generator.exe was not found"
+            ls -la dist_exe/ || true
             exit 1
-          }
+          fi
 
       - name: Upload Artifact (DTDC_Bill_Generator.exe)
         uses: actions/upload-artifact@v4

@@ -1,12 +1,5 @@
 import os
 import sys
-
-# Safe stdout/stderr fallback for PyInstaller --windowed / --noconsole mode on Windows
-if getattr(sys, 'stdout', None) is None:
-    sys.stdout = open(os.devnull, 'w')
-if getattr(sys, 'stderr', None) is None:
-    sys.stderr = open(os.devnull, 'w')
-
 import time
 import socket
 import threading
@@ -15,6 +8,28 @@ import mimetypes
 import subprocess
 import webbrowser
 from http.server import SimpleHTTPRequestHandler, HTTPServer
+
+# Robust stdout/stderr/stdin safe stream for PyInstaller --windowed mode on Windows
+# In windowed mode, sys.stdout and sys.stderr are None, and standard handles are invalid.
+class SafeStream:
+    def write(self, s):
+        pass
+    def flush(self):
+        pass
+    def isatty(self):
+        return False
+
+if getattr(sys, 'stdout', None) is None or not hasattr(sys.stdout, 'write'):
+    sys.stdout = SafeStream()
+if getattr(sys, 'stderr', None) is None or not hasattr(sys.stderr, 'write'):
+    sys.stderr = SafeStream()
+if getattr(sys, 'stdin', None) is None or not hasattr(sys.stdin, 'read'):
+    class SafeIn:
+        def read(self, *args, **kwargs):
+            return ''
+        def readline(self, *args, **kwargs):
+            return ''
+    sys.stdin = SafeIn()
 
 # Ensure correct MIME types on Windows
 mimetypes.init()
@@ -50,8 +65,12 @@ def locate_web_dir():
     return None
 
 def find_free_port():
-    """Find a random available port on localhost."""
+    """Find a random available port on localhost with socket reuse."""
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    except Exception:
+        pass
     s.bind(('127.0.0.1', 0))
     port = s.getsockname()[1]
     s.close()
@@ -63,8 +82,18 @@ class OfflineSpaHandler(SimpleHTTPRequestHandler):
         super().__init__(*args, directory=directory, **kwargs)
 
     def log_message(self, format, *args):
-        # Silence console log spam
+        # Silence console log spam in desktop mode
         pass
+
+    def log_error(self, format, *args):
+        # Prevent socket error tracebacks from crashing GUI
+        pass
+
+    def copyfile(self, source, outputfile):
+        try:
+            super().copyfile(source, outputfile)
+        except (ConnectionResetError, BrokenPipeError, ConnectionAbortedError):
+            pass
 
     def end_headers(self):
         self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
@@ -81,7 +110,10 @@ class OfflineSpaHandler(SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
-            self.wfile.write(b'{"status":"ok"}')
+            try:
+                self.wfile.write(b'{"status":"ok"}')
+            except Exception:
+                pass
             return
 
         target_path = os.path.join(self.target_dir, clean_path.lstrip('/'))
@@ -92,7 +124,13 @@ class OfflineSpaHandler(SimpleHTTPRequestHandler):
             if os.path.isfile(index_path):
                 self.path = '/index.html'
                 
-        return super().do_GET()
+        try:
+            return super().do_GET()
+        except (ConnectionResetError, BrokenPipeError, ConnectionAbortedError):
+            pass
+
+class ReusableHTTPServer(HTTPServer):
+    allow_reuse_address = True
 
 class ThreadedHTTPServer:
     def __init__(self, host, port, directory):
@@ -100,7 +138,7 @@ class ThreadedHTTPServer:
         self.port = port
         self.directory = directory
         handler = functools.partial(OfflineSpaHandler, directory=directory)
-        self.server = HTTPServer((host, port), handler)
+        self.server = ReusableHTTPServer((host, port), handler)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
 
     def start(self):
@@ -168,20 +206,31 @@ def launch_app_window(url):
     Launch in a 100% Dedicated Desktop Application Window.
     Uses --app=URL and --new-window without --user-data-dir, guaranteeing
     a clean window without browser tabs, URL bar, or bookmark bars.
+    Safely avoids [WinError 6] Invalid Handle in windowed/noconsole mode.
     """
     candidates = get_browser_executables()
     
+    extra_flags = {}
+    if sys.platform == 'win32':
+        extra_flags['creationflags'] = getattr(subprocess, 'CREATE_NO_WINDOW', 0x08000000)
+
     # 1. Direct Executable Launch in App Mode (1920x1080 + Maximized)
     for exe in candidates:
         try:
-            subprocess.Popen([
-                exe,
-                "--new-window",
-                f"--app={url}",
-                "--window-size=1920,1080",
-                "--start-maximized",
-                "--window-position=0,0"
-            ])
+            subprocess.Popen(
+                [
+                    exe,
+                    "--new-window",
+                    f"--app={url}",
+                    "--window-size=1920,1080",
+                    "--start-maximized",
+                    "--window-position=0,0"
+                ],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                **extra_flags
+            )
             return True
         except Exception:
             pass
@@ -192,8 +241,11 @@ def launch_app_window(url):
             try:
                 res = subprocess.run(
                     ["cmd.exe", "/c", "start", browser_cmd, "--new-window", f"--app={url}", "--window-size=1920,1080", "--start-maximized"],
-                    capture_output=True,
-                    timeout=3
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    timeout=3,
+                    **extra_flags
                 )
                 if res.returncode == 0:
                     return True
@@ -203,15 +255,18 @@ def launch_app_window(url):
     return False
 
 def show_error_dialog(message):
-    """Show native Windows message box if on Windows, else print."""
+    """Show native Windows message box if on Windows, else print safely."""
     if sys.platform == 'win32':
         try:
             import ctypes
-            ctypes.windll.user32.MessageBoxW(0, message, "DTDC Bill Generator - Error", 0x10)
+            ctypes.windll.user32.MessageBoxW(0, str(message), "DTDC Bill Generator - Error", 0x10)
             return
         except Exception:
             pass
-    print("ERROR:", message)
+    try:
+        sys.stderr.write(f"ERROR: {message}\n")
+    except Exception:
+        pass
 
 def main():
     global last_heartbeat_time
@@ -229,7 +284,7 @@ def main():
     server.start()
     
     # Small buffer to ensure socket is bound and ready to accept connections
-    time.sleep(0.25)
+    time.sleep(0.3)
     
     local_url = f"http://127.0.0.1:{port}/"
     last_heartbeat_time = time.time() + 60.0  # 60s initial grace period
@@ -241,7 +296,10 @@ def main():
 
     if not launched:
         # Fallback only if no Chromium engine was detected
-        webbrowser.open(local_url)
+        try:
+            webbrowser.open(local_url)
+        except Exception:
+            pass
 
     # Server keep-alive loop: stays active as long as app window sends heartbeats
     try:

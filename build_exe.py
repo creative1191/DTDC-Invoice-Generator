@@ -1,22 +1,30 @@
 import os
 import sys
 import shutil
+import subprocess
 
 def main():
     print("=== DTDC Bill Generator - Windows EXE Builder ===")
     
     base_dir = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(base_dir)
+    
     web_app_dir = os.path.join(base_dir, "web_app")
     dist_dir = os.path.join(base_dir, "dist")
     
-    # Always ensure web_app has the latest built assets from dist
+    # 1. Always ensure web_app has the latest built assets from dist
     if os.path.isdir(dist_dir) and os.path.isfile(os.path.join(dist_dir, "index.html")):
         print("Syncing latest web assets from dist/ to web_app/...")
+        try:
+            if os.path.exists(web_app_dir):
+                shutil.rmtree(web_app_dir, ignore_errors=True)
+        except Exception:
+            pass
         os.makedirs(web_app_dir, exist_ok=True)
         shutil.copytree(dist_dir, web_app_dir, dirs_exist_ok=True)
     elif not os.path.isfile(os.path.join(web_app_dir, "index.html")):
         print("Building web assets via npm run build...")
-        os.system("npm run build")
+        subprocess.run(["npm", "run", "build"], shell=True, check=True)
         if os.path.isdir(dist_dir) and os.path.isfile(os.path.join(dist_dir, "index.html")):
             os.makedirs(web_app_dir, exist_ok=True)
             shutil.copytree(dist_dir, web_app_dir, dirs_exist_ok=True)
@@ -26,14 +34,21 @@ def main():
             
     print(f"Verified web assets in: {web_app_dir}")
 
-    # Invoke PyInstaller programmatically
-    import PyInstaller.__main__
-    
-    sep = ";" if sys.platform == "win32" else ":"
+    # 2. Ensure PyInstaller is available, auto-install if missing
+    try:
+        import PyInstaller.__main__
+    except ImportError:
+        print("PyInstaller not found. Installing pyinstaller via pip...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "pyinstaller"])
+        import PyInstaller.__main__
+
+    # 3. Setup paths and parameters
+    sep = ";" if sys.platform == "win32" or os.name == "nt" else ":"
     dist_exe_dir = os.path.join(base_dir, "dist_exe")
     build_work_dir = os.path.join(base_dir, "build_work")
+    os.makedirs(dist_exe_dir, exist_ok=True)
+    os.makedirs(build_work_dir, exist_ok=True)
     
-    # Use relative paths for --add-data to prevent any Windows drive letter colon issues
     args = [
         "app_gui.py",
         "--name=DTDC_Bill_Generator",
@@ -47,11 +62,14 @@ def main():
         "--hidden-import=threading",
         "--hidden-import=subprocess",
         "--hidden-import=webbrowser",
+        "--hidden-import=mimetypes",
+        "--hidden-import=functools",
+        "--hidden-import=ctypes",
         "--clean",
         "-y"
     ]
     
-    print("Executing PyInstaller with args:")
+    print("\nExecuting PyInstaller with args:")
     for a in args:
         print("  ", a)
     print()
@@ -62,6 +80,9 @@ def main():
         if e.code not in (0, None):
             print(f"PyInstaller failed with exit code: {e.code}")
             sys.exit(e.code)
+    except Exception as e:
+        print(f"PyInstaller encountered an error: {e}")
+        sys.exit(1)
     
     exe_name = "DTDC_Bill_Generator.exe" if sys.platform == "win32" or os.name == "nt" else "DTDC_Bill_Generator"
     final_path = os.path.join(dist_exe_dir, exe_name)

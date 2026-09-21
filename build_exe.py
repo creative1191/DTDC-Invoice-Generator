@@ -12,16 +12,14 @@ def main():
     # Always ensure web_app has the latest built assets from dist
     if os.path.isdir(dist_dir) and os.path.isfile(os.path.join(dist_dir, "index.html")):
         print("Syncing latest web assets from dist/ to web_app/...")
-        if os.path.exists(web_app_dir):
-            shutil.rmtree(web_app_dir)
-        shutil.copytree(dist_dir, web_app_dir)
+        os.makedirs(web_app_dir, exist_ok=True)
+        shutil.copytree(dist_dir, web_app_dir, dirs_exist_ok=True)
     elif not os.path.isfile(os.path.join(web_app_dir, "index.html")):
         print("Building web assets via npm run build...")
         os.system("npm run build")
         if os.path.isdir(dist_dir) and os.path.isfile(os.path.join(dist_dir, "index.html")):
-            if os.path.exists(web_app_dir):
-                shutil.rmtree(web_app_dir)
-            shutil.copytree(dist_dir, web_app_dir)
+            os.makedirs(web_app_dir, exist_ok=True)
+            shutil.copytree(dist_dir, web_app_dir, dirs_exist_ok=True)
         else:
             print("ERROR: Could not find or build index.html in dist or web_app folder!")
             sys.exit(1)

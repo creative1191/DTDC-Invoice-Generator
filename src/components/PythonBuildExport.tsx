@@ -36,12 +36,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
 
-      - name: Install dependencies & Build latest web assets
-        run: |
-          npm ci || npm install --legacy-peer-deps
-          npm run build
+      - name: Install dependencies
+        shell: bash
+        run: npm install --legacy-peer-deps
+
+      - name: Build web frontend assets
+        shell: bash
+        run: npm run build
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -49,13 +51,14 @@ jobs:
           python-version: '3.11'
 
       - name: Install PyInstaller
+        shell: bash
         run: |
           python -m pip install --upgrade pip
           pip install pyinstaller
 
       - name: Build Standalone Windows Executable
-        run: |
-          python build_exe.py
+        shell: bash
+        run: python build_exe.py
 
       - name: Verify EXE Output
         shell: pwsh

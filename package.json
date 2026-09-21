@@ -7,7 +7,7 @@
     "dev": "tsx server.ts",
     "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
-    "clean": "rm -rf dist server.js",
+    "clean": "node -e \"const fs = require('fs'); ['dist', 'dist_exe', 'build_work'].forEach(d => { if(fs.existsSync(d)) fs.rmSync(d, {recursive: true, force: true}); }); console.log('Cleaned build directories');\"",
     "lint": "tsc --noEmit"
   },
   "dependencies": {

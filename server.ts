@@ -1,7 +1,18 @@
+import 'dotenv/config';
 import express from 'express';
+import fs from 'fs';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
+
+// Safe process-level error listeners to prevent unexpected server termination
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[Server] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('[Server] Uncaught Exception:', err);
+});
 
 async function startServer() {
   const app = express();
@@ -99,24 +110,50 @@ Return ONLY valid JSON matching this schema.`;
     }
   });
 
+  // Catch unmatched API routes so they return JSON instead of SPA HTML
+  app.all('/api/*', (req, res) => {
+    res.status(404).json({ error: `API route ${req.method} ${req.path} not found` });
+  });
+
   // Vite middleware in dev or static files in production
   if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
+    try {
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: 'spa',
+      });
+      app.use(vite.middlewares);
+    } catch (viteError) {
+      console.error('[Server] Failed to initialize Vite dev server middleware:', viteError);
+      throw viteError;
+    }
   } else {
     const distPath = path.join(process.cwd(), 'dist');
+    const indexPath = path.join(distPath, 'index.html');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+      if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+      } else {
+        res.status(404).send('Build assets not found in dist/. Run "npm run build" first.');
+      }
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`DTDC Bill Generator Server running on http://0.0.0.0:${PORT}`);
+  });
+
+  server.on('error', (err: any) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`[Server] Port ${PORT} is already in use.`);
+    } else {
+      console.error('[Server] Listen error:', err);
+    }
   });
 }
 
-startServer();
+startServer().catch((err) => {
+  console.error('[Server] Fatal initialization error:', err);
+  process.exit(1);
+});

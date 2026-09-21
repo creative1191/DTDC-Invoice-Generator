@@ -1,29 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 570 110" width="100%" height="100%">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 100" width="100%" height="100%">
   <defs>
     <mask id="dtdc-split-mask">
-      <rect x="0" y="0" width="570" height="110" fill="#ffffff" />
-      <rect x="0" y="44" width="570" height="15" fill="#000000" />
+      <rect x="0" y="0" width="500" height="100" fill="#ffffff" />
+      <rect x="0" y="40" width="500" height="14" fill="#000000" />
     </mask>
   </defs>
 
-  <!-- Global forward slant matching authentic DTDC logo -->
-  <g transform="skewX(-14)" transform-origin="285 55">
-    <!-- Letters D T D C in official navy blue -->
+  <g transform="skewX(-13)" transform-origin="250 50">
     <g fill="#0b2447" mask="url(#dtdc-split-mask)">
-      <!-- 1st 'D' -->
-      <path d="M 24 8 L 86 8 C 120 8 136 25 136 55 C 136 85 120 102 86 102 L 24 102 Z M 54 29 L 54 81 L 82 81 C 101 81 108 72 108 55 C 108 38 101 29 82 29 Z" />
-
-      <!-- 'T' -->
-      <path d="M 146 8 L 242 8 L 242 31 L 208 31 L 208 102 L 180 102 L 180 31 L 146 31 Z" />
-
-      <!-- 2nd 'D' -->
-      <path d="M 252 8 L 314 8 C 348 8 364 25 364 55 C 364 85 348 102 314 102 L 252 102 Z M 282 29 L 282 81 L 310 81 C 329 81 336 72 336 55 C 336 38 329 29 310 29 Z" />
-
-      <!-- 'C' -->
-      <path d="M 478 30 L 452 40 C 444 31 432 26 416 26 C 390 26 376 40 376 55 C 376 70 390 84 416 84 C 432 84 444 79 452 70 L 478 80 C 464 96 443 103 416 103 C 372 103 346 79 346 55 C 346 31 372 7 416 7 C 443 7 464 14 478 30 Z" />
+      <path d="M 22 10 L 80 10 C 110 10 124 24 124 50 C 124 76 110 90 80 90 L 22 90 Z M 48 28 L 48 72 L 76 72 C 92 72 98 64 98 50 C 98 36 92 28 76 28 Z" />
+      <path d="M 134 10 L 216 10 L 216 30 L 188 30 L 188 90 L 162 90 L 162 30 L 134 30 Z" />
+      <path d="M 226 10 L 284 10 C 314 10 328 24 328 50 C 328 76 314 90 284 90 L 226 90 Z M 252 28 L 252 72 L 280 72 C 296 72 302 64 302 50 C 302 36 296 28 280 28 Z" />
+      <path d="M 426 28 L 402 37 C 396 29 388 25 376 25 C 354 25 342 37 342 50 C 342 63 354 75 376 75 C 388 75 396 71 402 63 L 426 72 C 414 86 398 92 376 92 C 336 92 316 71 316 50 C 316 29 336 8 376 8 C 398 8 414 14 426 28 Z" />
     </g>
-
-    <!-- Signature Red Parallelogram -->
-    <rect x="496" y="52" width="40" height="42" fill="#e30613" rx="1" />
+    <rect x="444" y="47" width="34" height="36" fill="#e30613" rx="1" />
   </g>
 </svg>

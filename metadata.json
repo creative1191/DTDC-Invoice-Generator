@@ -1,6 +1,6 @@
 {
   "name": "DTDC Bill Generator",
-  "description": "Windows 11 desktop DTDC bill generator with OCR extraction, Code128 barcode, 3-copies portrait mode, paper save mode, and instant PDF/PNG print export.",
+  "description": "Multi-courier Windows 11 bill generator and 4-up A4 shipping label printing system supporting DTDC, Blue Dart, and Delhivery with Snipping Tool paste, multi-page PDF splitting, A4 2x2 grid layout, and print-ready export.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

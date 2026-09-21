@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 110" width="100%" height="100%">
+  <!-- Delhivery Official Modern Geometric Wordmark -->
+  <g fill="#1A1A1A">
+    <!-- Letter 'D' with bottom-left cut out for red square -->
+    <path d="M 0 4 L 54 4 C 74 4 86 16 86 36 L 86 74 C 86 94 74 106 54 106 L 24 106 L 24 82 L 0 82 Z M 24 28 L 24 82 L 48 82 C 58 82 62 76 62 66 L 62 44 C 62 34 58 28 48 28 Z" />
+    
+    <!-- Letter 'E' with chamfered inner corners -->
+    <path d="M 96 4 L 164 4 L 164 28 L 120 28 L 120 44 L 158 44 L 158 66 L 120 66 L 120 82 L 164 82 L 164 106 L 96 106 Z" />
+    
+    <!-- Letter 'L' -->
+    <path d="M 176 4 L 200 4 L 200 82 L 244 82 L 244 106 L 176 106 Z" />
+    
+    <!-- Letter 'H' -->
+    <path d="M 256 4 L 280 4 L 280 44 L 312 44 L 312 4 L 336 4 L 336 106 L 312 106 L 312 66 L 280 66 L 280 106 L 256 106 Z" />
+    
+    <!-- Letter 'I' -->
+    <path d="M 348 4 L 372 4 L 372 106 L 348 106 Z" />
+    
+    <!-- Letter 'V' -->
+    <path d="M 384 4 L 408 4 L 424 72 L 440 4 L 464 4 L 436 106 L 412 106 Z" />
+    
+    <!-- Letter 'E' -->
+    <path d="M 476 4 L 544 4 L 544 28 L 500 28 L 500 44 L 538 44 L 538 66 L 500 66 L 500 82 L 544 82 L 544 106 L 476 106 Z" />
+    
+    <!-- Letter 'R' -->
+    <path d="M 556 4 L 606 4 C 624 4 634 14 634 32 C 634 46 626 56 612 59 L 636 106 L 610 106 L 588 64 L 580 64 L 580 106 L 556 106 Z M 580 26 L 580 44 L 600 44 C 606 44 610 40 610 35 C 610 30 606 26 600 26 Z" />
+    
+    <!-- Letter 'Y' (Base & Left arm) -->
+    <path d="M 648 4 L 672 4 L 696 50 L 696 106 L 672 106 L 672 58 Z" />
+    <path d="M 696 50 L 720 40 L 720 4 L 696 50 Z" />
+  </g>
+
+  <!-- Signature Red Accents (Iconic Delhivery branding) -->
+  <!-- 1. Red Square at bottom-left of 'D' -->
+  <rect x="0" y="82" width="24" height="24" fill="#EE3124" />
+
+  <!-- 2. Red Top segment on right branch of 'Y' -->
+  <rect x="720" y="4" width="24" height="36" fill="#EE3124" />
+</svg>

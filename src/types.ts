@@ -1,4 +1,28 @@
+export type CourierType = 'DTDC' | 'BLUEDART' | 'DELHIVERY';
+
+export interface CourierConfig {
+  id: CourierType;
+  name: string;
+  shortName: string;
+  fullName: string;
+  companyName: string;
+  regdOfficeLine1: string;
+  regdOfficeLine2: string;
+  website: string;
+  supportEmail: string;
+  supportPhone: string;
+  docTitle: string;
+  defaultProducts: string[];
+  awbPrefix: string;
+  awbLabel: string;
+  termsStatement: string;
+  footerNotice: string;
+  themeColor: string;
+  accentColor: string;
+}
+
 export interface DTDCBillData {
+  courier?: CourierType;
   awb: string;
   origin: string;
   dest: string;

@@ -37,11 +37,13 @@
     margin: 0;
   }
 
-  body {
+  body, #root, .min-h-screen, .flex-1 {
     background: #ffffff !important;
     color: #000000 !important;
     padding: 0 !important;
     margin: 0 !important;
+    max-width: none !important;
+    width: 100% !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
@@ -69,6 +71,41 @@
     margin: 0 auto !important;
     padding: 6mm !important;
     page: landscape-page;
+  }
+
+  .a4-sheet-container {
+    width: 210mm !important;
+    max-width: 210mm !important;
+    min-width: 210mm !important;
+    height: 297mm !important;
+    min-height: 297mm !important;
+    margin: 0 auto !important;
+    padding: 5mm !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #ffffff !important;
+  }
+
+  .label-print-stage {
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    width: 100% !important;
+  }
+
+  .print-page-wrapper {
+    page-break-after: always !important;
+    break-after: page !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 210mm !important;
+  }
+
+  .print-page-wrapper:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
   }
 
   .page-break {

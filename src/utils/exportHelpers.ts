@@ -2,9 +2,10 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { DTDCBillData } from '../types';
 import { formatAmount } from '../components/DtdcBillLayout';
+import { COURIER_CONFIGS } from '../data/courierConfigs';
 
 /**
- * Downloads a high-resolution PNG of the DTDC bill.
+ * Downloads a high-resolution PNG of the courier bill.
  */
 export async function downloadBillAsPng(
   element: HTMLElement,
@@ -12,6 +13,8 @@ export async function downloadBillAsPng(
   isHighRes: boolean = true
 ) {
   try {
+    const courier = data.courier || 'DTDC';
+    const config = COURIER_CONFIGS[courier] || COURIER_CONFIGS.DTDC;
     const scale = isHighRes ? 3 : 2; // 3x = ~300 DPI
     const canvas = await html2canvas(element, {
       scale,
@@ -21,11 +24,11 @@ export async function downloadBillAsPng(
       logging: false,
     });
 
-    const safeName = (data.consignorName || 'DTDC')
+    const safeName = (data.consignorName || config.shortName)
       .replace(/[^a-zA-Z0-9]/g, '_')
       .substring(0, 20);
     const dest = (data.dest || 'SHIP').replace(/[^a-zA-Z0-9]/g, '');
-    const filename = `DTDC_${safeName}_${data.courierCharges || 0}rs_${dest}_${isHighRes ? 'HighRes' : 'Std'}.png`;
+    const filename = `${config.shortName}_${safeName}_${data.courierCharges || 0}rs_${dest}_${isHighRes ? 'HighRes' : 'Std'}.png`;
 
     const image = canvas.toDataURL('image/png');
     const link = document.createElement('a');
@@ -40,10 +43,12 @@ export async function downloadBillAsPng(
 }
 
 /**
- * Downloads a vector / pixel-perfect PDF of the DTDC bill (A4 Portrait or Landscape).
+ * Downloads a vector / pixel-perfect PDF of the courier bill (A4 Portrait or Landscape).
  */
 export async function downloadBillAsPdf(element: HTMLElement, data: DTDCBillData) {
   try {
+    const courier = data.courier || 'DTDC';
+    const config = COURIER_CONFIGS[courier] || COURIER_CONFIGS.DTDC;
     const isLandscape = data.layoutMode === 'SINGLE_LANDSCAPE';
     const canvas = await html2canvas(element, {
       scale: 2.5,
@@ -79,12 +84,12 @@ export async function downloadBillAsPdf(element: HTMLElement, data: DTDCBillData
 
     pdf.addImage(imgData, 'PNG', posX, posY, renderW, renderH);
 
-    const safeName = (data.consignorName || 'DTDC')
+    const safeName = (data.consignorName || config.shortName)
       .replace(/[^a-zA-Z0-9]/g, '_')
       .substring(0, 20);
     const dest = (data.dest || 'SHIP').replace(/[^a-zA-Z0-9]/g, '');
     const suffix = data.layoutMode === '3_COPIES_PORTRAIT' ? '_3Copies' : '';
-    const filename = `DTDC_${safeName}_${data.courierCharges || 0}rs_${dest}${suffix}.pdf`;
+    const filename = `${config.shortName}_${safeName}_${data.courierCharges || 0}rs_${dest}${suffix}.pdf`;
 
     pdf.save(filename);
     return true;
@@ -98,11 +103,13 @@ export async function downloadBillAsPdf(element: HTMLElement, data: DTDCBillData
  * Downloads standalone editable HTML template.
  */
 export function downloadBillAsHtml(data: DTDCBillData) {
+  const courier = data.courier || 'DTDC';
+  const config = COURIER_CONFIGS[courier] || COURIER_CONFIGS.DTDC;
   const htmlContent = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>DTDC Bill - ${data.awb}</title>
+  <title>${config.shortName} Bill - ${data.awb}</title>
   <style>
     body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
     .bill { background: #fff; border: 2px solid #000; padding: 12px; max-width: 900px; margin: 0 auto; }
@@ -115,8 +122,8 @@ export function downloadBillAsHtml(data: DTDCBillData) {
 <body>
   <div class="bill">
     <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:8px;">
-      <h2 style="margin:0; color:#0c2340;">DTDC EXPRESS LTD - CONSIGNMENT NOTE</h2>
-      <div><strong>AWB: ${data.awb}</strong> | Mode: ${data.mode} | Date: ${data.date}</div>
+      <h2 style="margin:0; color:${config.themeColor};">${config.fullName.toUpperCase()} - ${config.docTitle}</h2>
+      <div><strong>${config.awbLabel}: ${data.awb}</strong> | Mode: ${data.mode} | Date: ${data.date}</div>
     </div>
     <div class="grid">
       <div>
@@ -152,8 +159,11 @@ export function downloadBillAsHtml(data: DTDCBillData) {
         Courier Charges: ₹ ${formatAmount(data.courierCharges)}
       </div>
       <div>
-        Risk Surcharge: [✓] Owner's Risk [ ] Carrier's Risk
+        Risk Surcharge: [${data.riskSurchargeOwner ? '✓' : ' '}] Owner's Risk [${data.riskSurchargeCarrier ? '✓' : ' '}] Carrier's Risk
       </div>
+    </div>
+    <div style="margin-top:10px; font-size:11px; text-align:center; color:#555;">
+      ${config.footerNotice}
     </div>
   </div>
 </body>
@@ -163,7 +173,7 @@ export function downloadBillAsHtml(data: DTDCBillData) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `DTDC_${data.awb}_${data.dest}.html`;
+  link.download = `${config.shortName}_${data.awb}_${data.dest}.html`;
   link.click();
   URL.revokeObjectURL(url);
 }

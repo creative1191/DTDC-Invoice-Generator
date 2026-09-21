@@ -1,7 +1,8 @@
 import React from 'react';
 import { DTDCBillData } from '../types';
-import { DtdcLogo } from './DtdcLogo';
+import { CourierLogo } from './CourierLogo';
 import { BarcodeRenderer } from './BarcodeRenderer';
+import { COURIER_CONFIGS } from '../data/courierConfigs';
 
 interface DtdcBillLayoutProps {
   data: DTDCBillData;
@@ -32,6 +33,8 @@ export const DtdcBillLayout: React.FC<DtdcBillLayoutProps> = ({
     return <div className="w-full h-[88mm] bg-transparent" />;
   }
 
+  const courierType = data.courier || 'DTDC';
+  const courierConfig = COURIER_CONFIGS[courierType] || COURIER_CONFIGS.DTDC;
   const heightClass = isLandscapeFull ? 'min-h-[185mm]' : 'min-h-[88mm] max-h-[91mm]';
 
   return (
@@ -43,11 +46,17 @@ export const DtdcBillLayout: React.FC<DtdcBillLayoutProps> = ({
       <div className="grid grid-cols-12 border-b-[1.5px] border-black items-stretch">
         {/* Top Left: Logo & Registered Office Address (~42% width) */}
         <div className="col-span-5 flex items-center gap-2 p-1.5 border-r-[1.5px] border-black">
-          <DtdcLogo customLogoUrl={customLogoUrl} className={isLandscapeFull ? 'h-10' : 'h-7'} />
-          <div className="leading-tight text-black">
-            <div className="font-bold text-[10px] tracking-tight">DTDC Express Limited</div>
-            <div className="text-[8px] text-gray-800">Regd. Office No. 3, Victoria Road</div>
-            <div className="text-[8px] text-gray-800">Bengaluru - 560047</div>
+          <div className="shrink-0 flex items-center justify-center max-w-[135px] sm:max-w-[150px]">
+            <CourierLogo
+              courier={courierType}
+              customLogoUrl={customLogoUrl}
+              className={isLandscapeFull ? 'h-9 w-auto max-w-[165px]' : 'h-7 sm:h-7.5 w-auto max-w-[140px]'}
+            />
+          </div>
+          <div className="leading-tight text-black min-w-0 flex-1">
+            <div className="font-bold text-[9px] tracking-tight truncate">{courierConfig.fullName}</div>
+            <div className="text-[7.5px] text-gray-800 leading-tight">{courierConfig.regdOfficeLine1}</div>
+            <div className="text-[7.5px] text-gray-800 leading-tight">{courierConfig.regdOfficeLine2}</div>
           </div>
         </div>
 
@@ -59,7 +68,7 @@ export const DtdcBillLayout: React.FC<DtdcBillLayoutProps> = ({
               Origin: <span className="font-bold uppercase">{data.origin || 'SATNA'}</span>
             </div>
             <div className="flex-1 flex items-center justify-center p-1 font-bold text-[10px] tracking-wide text-center uppercase">
-              PRODUCT: {data.product || 'B2C SMART EXPRESS'}
+              PRODUCT: {data.product || courierConfig.defaultProducts[0]}
             </div>
           </div>
 
@@ -72,7 +81,7 @@ export const DtdcBillLayout: React.FC<DtdcBillLayoutProps> = ({
               Type: <span className="font-bold uppercase">{data.type || 'NON-DOCUMENT'}</span>
             </div>
             <div className="py-0.5 text-[8.5px] text-gray-800">
-              Date: <span className="font-normal">{data.date || 'Sat Sep 19 2026'}</span>
+              Date: <span className="font-normal">{data.date || 'Sun Sep 20 2026'}</span>
             </div>
           </div>
         </div>
@@ -148,13 +157,13 @@ export const DtdcBillLayout: React.FC<DtdcBillLayoutProps> = ({
                 {isPodCopy ? "Receiver's Signature & Stamp" : "Sender's Signature & Seal"}
               </div>
               <div className="text-[6.5px] text-gray-700 mt-0.5">
-                I have read and understood terms & conditions of carriage mentioned on website www.dtdc.in, and I agree to the same.
+                {courierConfig.termsStatement}
               </div>
             </div>
           </div>
 
           <div className="border-t-[1.5px] border-black px-1 py-0.5 text-[6.5px] text-center text-gray-800">
-            https://www.dtdc.in | customersupport@dtdc.com | +91-9606911811
+            https://{courierConfig.website} | {courierConfig.supportEmail} | {courierConfig.supportPhone}
           </div>
         </div>
 
@@ -209,7 +218,7 @@ export const DtdcBillLayout: React.FC<DtdcBillLayoutProps> = ({
               />
             </div>
             <div className="text-[9.5px]">
-              AWB No: <span className="font-bold font-mono">{data.awb || '7D134850071'}</span>
+              {courierConfig.awbLabel}: <span className="font-bold font-mono">{data.awb || '7D134850071'}</span>
             </div>
           </div>
 
@@ -244,7 +253,7 @@ export const DtdcBillLayout: React.FC<DtdcBillLayoutProps> = ({
 
       {/* ================= 4. FOOTER BAR ================= */}
       <div className="px-1.5 py-0.5 flex items-center justify-between text-[7.5px] font-bold tracking-tight">
-        <span>THIS DOCUMENT IS NOT A TAX INVOICE. WEIGHT CAPTURED BY DTDC WILL BE USED FOR INVOICE GENERATION.</span>
+        <span>{courierConfig.footerNotice}</span>
         <span>{copyTitle}</span>
       </div>
     </div>

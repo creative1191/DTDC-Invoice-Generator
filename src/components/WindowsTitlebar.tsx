@@ -1,12 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Minus, Square, X, ShieldCheck, Printer, FileText } from 'lucide-react';
+import { Minus, Square, X, ShieldCheck, Printer } from 'lucide-react';
+import { CourierType } from '../types';
+import { COURIER_CONFIGS } from '../data/courierConfigs';
 
 interface WindowsTitlebarProps {
   onPrint?: () => void;
   activeLabel?: string;
+  currentCourier?: CourierType;
+  onSelectCourier?: (c: CourierType) => void;
 }
 
-export const WindowsTitlebar: React.FC<WindowsTitlebarProps> = ({ onPrint, activeLabel }) => {
+export const WindowsTitlebar: React.FC<WindowsTitlebarProps> = ({
+  onPrint,
+  activeLabel,
+  currentCourier = 'DTDC',
+  onSelectCourier,
+}) => {
   const [timeStr, setTimeStr] = useState<string>('');
   const [isMaximized, setIsMaximized] = useState(false);
 
@@ -22,16 +31,18 @@ export const WindowsTitlebar: React.FC<WindowsTitlebarProps> = ({ onPrint, activ
     return () => clearInterval(interval);
   }, []);
 
+  const config = COURIER_CONFIGS[currentCourier] || COURIER_CONFIGS.DTDC;
+
   return (
     <div className="bg-[#0b1c3c] text-white px-3 py-2 flex items-center justify-between select-none border-b border-[#1a2f5a] no-print">
       {/* Left: App icon and title */}
       <div className="flex items-center gap-2.5">
         <div className="w-6 h-6 rounded bg-[#07132a] border border-[#254378] flex items-center justify-center p-0.5 shadow-sm overflow-hidden">
-          <img src="/favicon.svg" alt="DTDC App Icon" className="w-full h-full object-contain" />
+          <img src="/favicon.svg" alt="App Icon" className="w-full h-full object-contain" />
         </div>
         <div className="flex items-center gap-2">
           <span className="font-semibold text-xs tracking-wide">
-            DTDC Bill Generator — Windows 11 Desktop Edition (V8.2)
+            {config.name} Bill Generator — Multi-Courier Desktop Suite
           </span>
           <span className="bg-emerald-600/80 text-[10px] text-white px-1.5 py-0.2 rounded font-mono font-medium">
             EXE READY
@@ -48,7 +59,7 @@ export const WindowsTitlebar: React.FC<WindowsTitlebarProps> = ({ onPrint, activ
       <div className="hidden sm:flex items-center gap-3 text-xs text-blue-200">
         <div className="flex items-center gap-1.5 bg-[#122b5e] px-2 py-0.5 rounded text-[11px]">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Locked Format Active</span>
+          <span>Active: <strong className="text-white">{config.shortName}</strong></span>
         </div>
         <span className="font-mono text-xs text-white bg-black/30 px-2 py-0.5 rounded">
           {timeStr || '01:30 PM'}

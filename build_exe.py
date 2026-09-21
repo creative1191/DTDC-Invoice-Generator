@@ -9,15 +9,21 @@ def main():
     web_app_dir = os.path.join(base_dir, "web_app")
     dist_dir = os.path.join(base_dir, "dist")
     
-    # Ensure web_app has the required files
-    if not os.path.isfile(os.path.join(web_app_dir, "index.html")):
+    # Always ensure web_app has the latest built assets from dist
+    if os.path.isdir(dist_dir) and os.path.isfile(os.path.join(dist_dir, "index.html")):
+        print("Syncing latest web assets from dist/ to web_app/...")
+        if os.path.exists(web_app_dir):
+            shutil.rmtree(web_app_dir)
+        shutil.copytree(dist_dir, web_app_dir)
+    elif not os.path.isfile(os.path.join(web_app_dir, "index.html")):
+        print("Building web assets via npm run build...")
+        os.system("npm run build")
         if os.path.isdir(dist_dir) and os.path.isfile(os.path.join(dist_dir, "index.html")):
-            print("Syncing web assets from dist to web_app...")
             if os.path.exists(web_app_dir):
                 shutil.rmtree(web_app_dir)
             shutil.copytree(dist_dir, web_app_dir)
         else:
-            print("ERROR: index.html not found in web_app or dist folder!")
+            print("ERROR: Could not find or build index.html in dist or web_app folder!")
             sys.exit(1)
             
     print(f"Verified web assets in: {web_app_dir}")

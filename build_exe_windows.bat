@@ -4,19 +4,19 @@ echo       DTDC Bill Generator - Windows EXE Builder
 echo               (100%% Offline Desktop App)
 echo ========================================================
 
-echo 1. Checking / Syncing Web Frontend assets...
-if not exist web_app\index.html (
-  if exist dist\index.html (
-    echo Syncing from dist\ to web_app\...
-    xcopy /E /I /Y dist web_app
-  ) else (
-    echo Building web assets...
-    call npm install --legacy-peer-deps
-    call npm run build
-    xcopy /E /I /Y dist web_app
-  )
+echo 1. Building and Syncing Latest Web Frontend assets...
+if exist package.json (
+  echo Running npm run build to compile latest React code...
+  call npm run build
+  echo Syncing dist\ to web_app\...
+  if exist web_app rmdir /s /q web_app
+  xcopy /E /I /Y dist web_app
+) else if exist dist\index.html (
+  echo Syncing from dist\ to web_app\...
+  if exist web_app rmdir /s /q web_app
+  xcopy /E /I /Y dist web_app
 ) else (
-  echo Pre-built offline web assets verified in web_app\
+  echo Using verified assets in web_app\
 )
 
 echo.

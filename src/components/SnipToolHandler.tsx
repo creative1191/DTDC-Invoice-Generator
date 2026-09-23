@@ -11,7 +11,7 @@ import {
   ArrowRightLeft,
 } from 'lucide-react';
 import { OCRMatchResult, CourierType } from '../types';
-import { parseCourierOcrText } from '../utils/ocrParser';
+import { parseCourierOcrText, cleanAddressString } from '../utils/ocrParser';
 import { extractTextAndImageFromPdf } from '../utils/pdfLabelExtractor';
 
 interface SnipToolHandlerProps {
@@ -87,6 +87,9 @@ export const SnipToolHandler: React.FC<SnipToolHandlerProps> = ({
 
         // 1. Instant client-side text parsing using multi-courier regex engine
         const localParsed = parseCourierOcrText(text, currentCourier);
+        if (localParsed.consigneeAddress) {
+          localParsed.consigneeAddress = cleanAddressString(localParsed.consigneeAddress, localParsed.consigneeName);
+        }
         let extractedData = { ...localParsed };
 
         if (localParsed.detectedCourier && localParsed.detectedCourier !== currentCourier) {
@@ -115,13 +118,14 @@ export const SnipToolHandler: React.FC<SnipToolHandlerProps> = ({
             const json = await res.json();
             if (json.success && json.data) {
               const aiData: OCRMatchResult = json.data;
+              const cleanAiAddr = cleanAddressString(aiData.consigneeAddress || extractedData.consigneeAddress, aiData.consigneeName || extractedData.consigneeName);
               const merged: OCRMatchResult = {
                 ...extractedData,
                 ...aiData,
                 // Preserve non-empty fields
                 awb: aiData.awb || extractedData.awb,
                 consigneeName: aiData.consigneeName || extractedData.consigneeName,
-                consigneeAddress: aiData.consigneeAddress || extractedData.consigneeAddress,
+                consigneeAddress: cleanAiAddr,
                 consignorName: aiData.consignorName || extractedData.consignorName,
               };
 

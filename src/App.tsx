@@ -19,6 +19,7 @@ import { PythonBuildExport } from './components/PythonBuildExport';
 import { LockedSettingsModal } from './components/LockedSettingsModal';
 import { LabelPrintingManager } from './components/LabelPrinting/LabelPrintingManager';
 import { downloadBillAsPdf, downloadBillAsPng, downloadBillAsHtml } from './utils/exportHelpers';
+import { cleanAddressString } from './utils/ocrParser';
 
 export default function App() {
   const [selectedCourier, setSelectedCourier] = useState<CourierType>('DTDC');
@@ -106,31 +107,39 @@ export default function App() {
       handleSwitchCourier(extracted.detectedCourier);
     }
 
-    setBillData((prev) => ({
-      ...prev,
-      courier: extracted.detectedCourier || prev.courier || selectedCourier,
-      awb: extracted.awb || detectedAwb || prev.awb,
-      origin: extracted.origin || prev.origin,
-      dest: extracted.dest || prev.dest,
-      product: extracted.product || prev.product,
-      type: extracted.type || prev.type,
-      mode: extracted.mode || prev.mode,
-      date: extracted.date || prev.date,
-      consigneeName: extracted.consigneeName || prev.consigneeName,
-      consigneeAddress: extracted.consigneeAddress || prev.consigneeAddress,
-      consigneePhone: extracted.consigneePhone || prev.consigneePhone,
-      consignorName: extracted.consignorName || prev.consignorName,
-      consignorAddress: extracted.consignorAddress || prev.consignorAddress,
-      consignorPhone: extracted.consignorPhone || prev.consignorPhone,
-      consignorGstin: extracted.consignorGstin || prev.consignorGstin,
-      contentSpec: extracted.contentSpec || prev.contentSpec,
-      declaredValue: extracted.declaredValue || prev.declaredValue,
-      pieces: extracted.pieces || prev.pieces,
-      actualWeight: extracted.actualWeight || prev.actualWeight,
-      chargedWeight: extracted.chargedWeight || prev.chargedWeight,
-      dim: extracted.dim || prev.dim,
-      courierCharges: extracted.courierCharges !== undefined ? extracted.courierCharges : prev.courierCharges,
-    }));
+    setBillData((prev) => {
+      const targetConsigneeName = extracted.consigneeName || prev.consigneeName;
+      const cleanConsigneeAddr = cleanAddressString(
+        extracted.consigneeAddress !== undefined ? extracted.consigneeAddress : prev.consigneeAddress,
+        targetConsigneeName
+      );
+
+      return {
+        ...prev,
+        courier: extracted.detectedCourier || prev.courier || selectedCourier,
+        awb: extracted.awb || detectedAwb || prev.awb,
+        origin: extracted.origin || prev.origin,
+        dest: extracted.dest || prev.dest,
+        product: extracted.product || prev.product,
+        type: extracted.type || prev.type,
+        mode: extracted.mode || prev.mode,
+        date: extracted.date || prev.date,
+        consigneeName: targetConsigneeName,
+        consigneeAddress: cleanConsigneeAddr,
+        consigneePhone: extracted.consigneePhone || prev.consigneePhone,
+        consignorName: extracted.consignorName || prev.consignorName,
+        consignorAddress: extracted.consignorAddress || prev.consignorAddress,
+        consignorPhone: extracted.consignorPhone || prev.consignorPhone,
+        consignorGstin: extracted.consignorGstin || prev.consignorGstin,
+        contentSpec: extracted.contentSpec || prev.contentSpec,
+        declaredValue: extracted.declaredValue || prev.declaredValue,
+        pieces: extracted.pieces || prev.pieces,
+        actualWeight: extracted.actualWeight || prev.actualWeight,
+        chargedWeight: extracted.chargedWeight || prev.chargedWeight,
+        dim: extracted.dim || prev.dim,
+        courierCharges: extracted.courierCharges !== undefined ? extracted.courierCharges : prev.courierCharges,
+      };
+    });
   }, [selectedCourier, handleSwitchCourier]);
 
   // Clear old data button logic

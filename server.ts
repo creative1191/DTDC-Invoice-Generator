@@ -62,26 +62,34 @@ Analyze the provided image/document and extract all courier information into pur
 Courier detection guidelines:
 - DTDC: Usually has "DTDC" branding, AWB starts with 7D, 7X, or 7 followed by 8-11 digits/letters. Products: B2C SMART EXPRESS, B2C PRIORITY, DOMESTIC.
 - Blue Dart: Has "Blue Dart" or "Air Waybill" branding. AWB/Waybill is typically 8 to 11 digits (e.g. 7839420194, 84930192834, 351249821). Products: APEX, DOMESTIC PRIORITY, SURFACE, SMART BOX.
-- Delhivery: Has "Delhivery" branding or barcode. AWB/Waybill is typically 12 to 15 digits (e.g. 1412345678901, 1234567890123). Products: Express Parcel, Heavy Surface, Standard.
+- Delhivery: Has "Delhivery" or "Powered by Delhivery" branding. AWB/Waybill is typically 12 to 15 digits (e.g. 1412345678901, 34084710004874). Products: Express Parcel, Heavy Surface, Standard.
+
+CRITICAL INVOICE ADDRESS EXTRACTION RULES (IMPORTANT):
+- Invoices frequently show BOTH "SHIPPING ADDRESS" and "BILLING ADDRESS" side-by-side or one after another.
+- consigneeName and consigneeAddress MUST be extracted ONLY from "SHIPPING ADDRESS" (or "SHIP TO").
+- NEVER concatenate, combine, or repeat the address even if "BILLING ADDRESS" is identical or also present.
+- Strip out any labels like "BILLING ADDRESS", "SHIPPING ADDRESS", "ORDER DETAILS".
+- consigneeAddress must contain the destination address lines ONLY ONCE (absolutely no duplicate repetitions).
+- "BILL FROM", "SOLD BY", or "DISPATCHED FROM" is the Consignor / Sender. Extract company name into consignorName, full address into consignorAddress, and GSTIN into consignorGstin.
 
 Extract these exact fields into JSON:
 - detectedCourier: "DTDC" | "BLUEDART" | "DELHIVERY"
-- awb: Airway Bill / Waybill / LR Number
-- origin: Origin city (e.g. SATNA, MUMBAI, DELHI, BANGALORE)
-- dest: Destination city or hub
-- product: Product type (e.g. APEX, DOMESTIC PRIORITY, B2C SMART EXPRESS, Express Parcel, SURFACE)
+- awb: Airway Bill / Waybill / LR Number (e.g. 34084710004874, 7D134850071)
+- origin: Origin city (e.g. SATNA, NAGOD, MUMBAI, DELHI)
+- dest: Destination city or hub (e.g. AMBALA, MEHSANA, KOTA)
+- product: Product type (e.g. Express Parcel, APEX, DOMESTIC PRIORITY, B2C SMART EXPRESS, SURFACE)
 - type: "DOCUMENT" or "NON-DOCUMENT"
 - mode: "AIR" or "SURFACE"
-- date: Date string found on receipt (e.g. Sat Sep 19 2026, 23/09/2026)
-- consigneeName: Full name of consignee / recipient
-- consigneeAddress: Full address of consignee
+- date: Date string found on receipt (e.g. 2026-9-23, Sat Sep 19 2026)
+- consigneeName: Full name of consignee / recipient (from SHIPPING ADDRESS only)
+- consigneeAddress: Full clean single address of consignee (from SHIPPING ADDRESS only, NO billing address, NO duplicates)
 - consigneePhone: Phone / mobile number of consignee
-- consignorName: Sender / Shipper / Consignor name
-- consignorAddress: Sender address
+- consignorName: Sender / Shipper / Consignor name (from BILL FROM or SOLD BY)
+- consignorAddress: Sender address (from BILL FROM)
 - consignorPhone: Sender phone / mobile
-- consignorGstin: Sender GSTIN if visible
-- contentSpec: Content specification / description (e.g. LAPTOP, ELECTRIC ITEMS, DOCUMENTS)
-- declaredValue: Declared value number or "Not Applicable"
+- consignorGstin: Sender GSTIN if visible (e.g. 23BCPPD5853C1ZT)
+- contentSpec: Content specification / description (e.g. Milk analyser, LAPTOP, DOCUMENTS)
+- declaredValue: Declared value number or total amount (e.g. 10000)
 - pieces: Number of pieces (e.g. 1)
 - actualWeight: Actual weight string (e.g. 0.23 Kgs, 2.5 Kgs, 500 Gms)
 - chargedWeight: Charged weight string (e.g. 0.23 Kgs, 2.715 Kgs, 500 Gms)
@@ -113,6 +121,32 @@ Return ONLY valid JSON matching this schema.`;
       const responseText = response.text?.trim() || '{}';
       const jsonText = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
       const parsedData = JSON.parse(jsonText);
+
+      // Server-side safety deduplication for consigneeAddress
+      if (parsedData.consigneeAddress) {
+        let addr = parsedData.consigneeAddress
+          .replace(/(?:BILLING\s*ADDRESS|BILL\s*TO\s*ADDRESS|BILL\s*TO|ORDER\s*DETAILS)[\s\S]*/i, '')
+          .replace(/^(?:SHIPPING\s*ADDRESS|SHIP\s*TO\s*ADDRESS|SHIP\s*TO|DELIVERY\s*ADDRESS|ADDRESS)\s*[:\-]?\s*/i, '')
+          .trim();
+
+        if (parsedData.consigneeName) {
+          const esc = parsedData.consigneeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          addr = addr.replace(new RegExp(`^${esc}\\s*[,\\-\\n\\s]*`, 'i'), '');
+        }
+
+        const parts = addr.split(/[,;\n\r]+/).map((s: string) => s.trim()).filter(Boolean);
+        const seen = new Set<string>();
+        const deduped: string[] = [];
+        for (const p of parts) {
+          const lower = p.toLowerCase();
+          if (lower === 'billing address' || lower === 'shipping address') continue;
+          if (!seen.has(lower)) {
+            seen.add(lower);
+            deduped.push(p);
+          }
+        }
+        parsedData.consigneeAddress = deduped.join(', ');
+      }
 
       return res.json({ success: true, data: parsedData });
     } catch (err: any) {

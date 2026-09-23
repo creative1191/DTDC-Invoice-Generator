@@ -155,14 +155,34 @@ export async function extractTextAndImageFromPdf(
     const totalPages = pdf.numPages;
 
     let fullText = '';
-    // Extract text from pages (up to first 3 pages)
+    // Extract text from pages (up to first 3 pages) with proper newline preservation
     const pagesToRead = Math.min(totalPages, 3);
     for (let p = 1; p <= pagesToRead; p++) {
       const page = await pdf.getPage(p);
       const textContent = await page.getTextContent();
-      const pageText = textContent.items
-        .map((item: any) => (item?.str ? item.str : ''))
-        .join(' ');
+      
+      let pageText = '';
+      let lastY: number | null = null;
+
+      for (const item of textContent.items as any[]) {
+        if (!item || typeof item.str !== 'string') continue;
+        const currentY = Array.isArray(item.transform) ? Math.round(item.transform[5]) : null;
+        
+        // If vertical position changes significantly or item has End-Of-Line, insert newline
+        if (lastY !== null && currentY !== null && Math.abs(currentY - lastY) > 5) {
+          pageText += '\n';
+        } else if (item.hasEOL) {
+          pageText += '\n';
+        } else if (pageText.length > 0 && !pageText.endsWith('\n') && !pageText.endsWith(' ')) {
+          pageText += ' ';
+        }
+
+        pageText += item.str;
+        if (currentY !== null) {
+          lastY = currentY;
+        }
+      }
+
       fullText += `\n--- Page ${p} ---\n` + pageText;
     }
 

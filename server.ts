@@ -31,10 +31,10 @@ async function startServer() {
     res.json({ status: 'alive' });
   });
 
-  // Smart AI OCR Extraction endpoint using Gemini API if key is available
+  // Smart AI OCR Extraction endpoint supporting DTDC, Blue Dart, and Delhivery
   app.post('/api/ocr', async (req, res) => {
     try {
-      const { imageBase64, mimeType = 'image/png' } = req.body;
+      const { imageBase64, mimeType = 'image/png', courier = 'AUTO' } = req.body;
       if (!imageBase64) {
         return res.status(400).json({ error: 'imageBase64 is required' });
       }
@@ -49,45 +49,56 @@ async function startServer() {
 
       const ai = new GoogleGenAI({ apiKey });
 
-      // Clean base64 data prefix if present
-      const cleanData = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
+      // Clean base64 data prefix regardless of image or pdf mime type
+      const cleanData = imageBase64.replace(/^data:[^;]+;base64,/, '');
 
-      const prompt = `You are an expert OCR parser for DTDC courier shipping receipts and labels.
-Analyze the provided image and extract all courier information into pure JSON without markdown code fences.
+      const isPdf = mimeType === 'application/pdf' || imageBase64.startsWith('data:application/pdf');
+      const finalMimeType = isPdf ? 'application/pdf' : (mimeType || 'image/png');
 
-Extract these exact fields:
-- awb: Airway Bill Number (e.g. 7X117632483, 7D134850069, 7D134850071)
-- origin: Origin city (e.g. SATNA)
-- dest: Destination city (e.g. KOTA, TRICHUR, MEHSANA, DHAR)
-- product: Product type (e.g. B2C SMART EXPRESS, B2C PRIORITY, DOMESTIC)
-- type: Shipment type (DOCUMENT or NON-DOCUMENT)
-- mode: Transport mode (AIR or SURFACE)
-- date: Date string found on receipt (e.g. Sat Sep 19 2026)
+      const prompt = `You are an expert OCR parser for Indian courier shipping receipts, invoices, and shipping labels.
+You specialize in DTDC, Blue Dart, and Delhivery documents (Active courier preference: ${courier}).
+Analyze the provided image/document and extract all courier information into pure JSON without markdown code fences.
+
+Courier detection guidelines:
+- DTDC: Usually has "DTDC" branding, AWB starts with 7D, 7X, or 7 followed by 8-11 digits/letters. Products: B2C SMART EXPRESS, B2C PRIORITY, DOMESTIC.
+- Blue Dart: Has "Blue Dart" or "Air Waybill" branding. AWB/Waybill is typically 8 to 11 digits (e.g. 7839420194, 84930192834, 351249821). Products: APEX, DOMESTIC PRIORITY, SURFACE, SMART BOX.
+- Delhivery: Has "Delhivery" branding or barcode. AWB/Waybill is typically 12 to 15 digits (e.g. 1412345678901, 1234567890123). Products: Express Parcel, Heavy Surface, Standard.
+
+Extract these exact fields into JSON:
+- detectedCourier: "DTDC" | "BLUEDART" | "DELHIVERY"
+- awb: Airway Bill / Waybill / LR Number
+- origin: Origin city (e.g. SATNA, MUMBAI, DELHI, BANGALORE)
+- dest: Destination city or hub
+- product: Product type (e.g. APEX, DOMESTIC PRIORITY, B2C SMART EXPRESS, Express Parcel, SURFACE)
+- type: "DOCUMENT" or "NON-DOCUMENT"
+- mode: "AIR" or "SURFACE"
+- date: Date string found on receipt (e.g. Sat Sep 19 2026, 23/09/2026)
 - consigneeName: Full name of consignee / recipient
 - consigneeAddress: Full address of consignee
-- consigneePhone: Phone number of consignee
-- consignorName: Sender name if present
-- consignorAddress: Sender address if present
-- consignorPhone: Sender phone if present
-- contentSpec: Content specification (e.g. LAPTOP, ELECTRIC ITEMS, DOCUMENTS)
+- consigneePhone: Phone / mobile number of consignee
+- consignorName: Sender / Shipper / Consignor name
+- consignorAddress: Sender address
+- consignorPhone: Sender phone / mobile
+- consignorGstin: Sender GSTIN if visible
+- contentSpec: Content specification / description (e.g. LAPTOP, ELECTRIC ITEMS, DOCUMENTS)
 - declaredValue: Declared value number or "Not Applicable"
 - pieces: Number of pieces (e.g. 1)
-- actualWeight: Actual weight string (e.g. 0.23 Kgs, 2.5 Kgs, 100 Gms)
+- actualWeight: Actual weight string (e.g. 0.23 Kgs, 2.5 Kgs, 500 Gms)
 - chargedWeight: Charged weight string (e.g. 0.23 Kgs, 2.715 Kgs, 500 Gms)
-- dim: Dimensions string (e.g. 52x31x8 cm, 10x10x10 cm, Not Applicable)
-- courierCharges: Courier charges amount number if visible
+- dim: Dimensions string (e.g. 10x10x10 cm, Not Applicable)
+- courierCharges: Courier charges or freight amount number if visible
 
 Return ONLY valid JSON matching this schema.`;
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.8-flash',
         contents: [
           {
             role: 'user',
             parts: [
               {
                 inlineData: {
-                  mimeType,
+                  mimeType: finalMimeType,
                   data: cleanData
                 }
               },
@@ -100,7 +111,7 @@ Return ONLY valid JSON matching this schema.`;
       });
 
       const responseText = response.text?.trim() || '{}';
-      const jsonText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+      const jsonText = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
       const parsedData = JSON.parse(jsonText);
 
       return res.json({ success: true, data: parsedData });

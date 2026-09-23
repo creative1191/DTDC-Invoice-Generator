@@ -43,6 +43,7 @@ export const INITIAL_BILL_DATA: DTDCBillData = {
 
   layoutMode: '3_COPIES_PORTRAIT',
   paperSaveMode: false,
+  printMargin: 'normal',
 };
 
 export const PRESET_LABELS: PresetLabel[] = [

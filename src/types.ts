@@ -71,6 +71,7 @@ export interface DTDCBillData {
   // Printing Layout Config
   layoutMode: '3_COPIES_PORTRAIT' | 'SINGLE_LANDSCAPE';
   paperSaveMode: boolean; // When true, only Sender top copy printed, other 2 blank
+  printMargin?: 'normal' | 'relaxed' | 'compact'; // Header & Footer print margins: normal (9mm), relaxed (13mm), compact (5mm)
 }
 
 export interface PresetLabel {
@@ -81,6 +82,7 @@ export interface PresetLabel {
 }
 
 export interface OCRMatchResult {
+  detectedCourier?: CourierType;
   awb?: string;
   origin?: string;
   dest?: string;
@@ -94,6 +96,7 @@ export interface OCRMatchResult {
   consignorName?: string;
   consignorAddress?: string;
   consignorPhone?: string;
+  consignorGstin?: string;
   contentSpec?: string;
   declaredValue?: string;
   pieces?: string;

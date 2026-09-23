@@ -10,6 +10,7 @@ interface BillExportBarProps {
   onExportPdf: () => void;
   onExportPng: (highRes: boolean) => void;
   onExportHtml: () => void;
+  onUpdateField?: (field: keyof DTDCBillData, value: any) => void;
 }
 
 export const BillExportBar: React.FC<BillExportBarProps> = React.memo(({
@@ -20,10 +21,13 @@ export const BillExportBar: React.FC<BillExportBarProps> = React.memo(({
   onExportPdf,
   onExportPng,
   onExportHtml,
+  onUpdateField,
 }) => {
+  const currentMargin = billData.printMargin || 'normal';
+
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-3 shadow-2xs flex flex-wrap items-center justify-between gap-2 no-print">
-      <div className="flex items-center gap-2">
+    <div className="bg-white rounded-lg border border-gray-200 p-3 shadow-2xs flex flex-wrap items-center justify-between gap-2.5 no-print">
+      <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
           <span>Output Document:</span>
@@ -31,9 +35,52 @@ export const BillExportBar: React.FC<BillExportBarProps> = React.memo(({
         <span className="text-xs font-mono font-semibold text-blue-900 bg-blue-50 px-2 py-0.5 rounded">
           {currentConfig.shortName} —{' '}
           {billData.layoutMode === '3_COPIES_PORTRAIT'
-            ? 'A4 Portrait (3 Copies Stacked)'
+            ? 'A4 Portrait (3 Copies)'
             : 'A4 Landscape (Single Page)'}
         </span>
+
+        {/* Print Margin selector */}
+        {onUpdateField && (
+          <div className="flex items-center gap-1 bg-gray-100 border border-gray-200 rounded-md p-0.5 text-[11px]">
+            <span className="text-gray-500 px-1 font-medium">Margin:</span>
+            <button
+              type="button"
+              onClick={() => onUpdateField('printMargin', 'normal')}
+              className={`px-1.5 py-0.5 rounded cursor-pointer transition-colors ${
+                currentMargin === 'normal'
+                  ? 'bg-white font-bold text-blue-700 shadow-2xs border border-gray-200'
+                  : 'text-gray-600 hover:text-black'
+              }`}
+              title="Standard 9mm header and footer margins for clean A4 printing"
+            >
+              Normal (9mm)
+            </button>
+            <button
+              type="button"
+              onClick={() => onUpdateField('printMargin', 'relaxed')}
+              className={`px-1.5 py-0.5 rounded cursor-pointer transition-colors ${
+                currentMargin === 'relaxed'
+                  ? 'bg-white font-bold text-blue-700 shadow-2xs border border-gray-200'
+                  : 'text-gray-600 hover:text-black'
+              }`}
+              title="Extra 13mm header and footer margins for printers with wide feed margins"
+            >
+              Relaxed (13mm)
+            </button>
+            <button
+              type="button"
+              onClick={() => onUpdateField('printMargin', 'compact')}
+              className={`px-1.5 py-0.5 rounded cursor-pointer transition-colors ${
+                currentMargin === 'compact'
+                  ? 'bg-white font-bold text-blue-700 shadow-2xs border border-gray-200'
+                  : 'text-gray-600 hover:text-black'
+              }`}
+              title="Tight 5mm margins"
+            >
+              Compact (5mm)
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-1.5">

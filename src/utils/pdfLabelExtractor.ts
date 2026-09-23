@@ -132,3 +132,79 @@ export async function extractFromImageFile(
     reader.readAsDataURL(blob);
   });
 }
+
+/**
+ * Extracts searchable text and renders the first page of a PDF into a high-res PNG data URL.
+ * Enables both instant vector text extraction and AI image OCR for courier invoices / labels.
+ */
+export async function extractTextAndImageFromPdf(
+  file: Blob | File
+): Promise<{ text: string; dataUrl: string; totalPages: number }> {
+  const arrayBuffer = await file.arrayBuffer();
+  let loadingTask: any = null;
+
+  try {
+    loadingTask = pdfjsLib.getDocument({
+      data: new Uint8Array(arrayBuffer),
+      cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/cmaps/`,
+      cMapPacked: true,
+      standardFontDataUrl: `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/standard_fonts/`,
+    });
+
+    const pdf = await loadingTask.promise;
+    const totalPages = pdf.numPages;
+
+    let fullText = '';
+    // Extract text from pages (up to first 3 pages)
+    const pagesToRead = Math.min(totalPages, 3);
+    for (let p = 1; p <= pagesToRead; p++) {
+      const page = await pdf.getPage(p);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items
+        .map((item: any) => (item?.str ? item.str : ''))
+        .join(' ');
+      fullText += `\n--- Page ${p} ---\n` + pageText;
+    }
+
+    // Render Page 1 to canvas at 2.5x scale for preview and visual OCR
+    const firstPage = await pdf.getPage(1);
+    const viewport = firstPage.getViewport({ scale: 2.5 });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.floor(viewport.width);
+    canvas.height = Math.floor(viewport.height);
+
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) {
+      throw new Error('Could not create canvas 2d context for PDF rendering');
+    }
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    await firstPage.render({
+      canvasContext: ctx,
+      viewport,
+      canvas,
+    }).promise;
+
+    const dataUrl = canvas.toDataURL('image/png', 0.95);
+
+    return {
+      text: fullText.trim(),
+      dataUrl,
+      totalPages,
+    };
+  } catch (err: any) {
+    console.error('[PDF.js] Failed to extract text/image from PDF:', err);
+    throw new Error(err?.message || 'Could not parse PDF content');
+  } finally {
+    if (loadingTask && typeof loadingTask.destroy === 'function') {
+      try {
+        loadingTask.destroy();
+      } catch {
+        // Ignore destroy error
+      }
+    }
+  }
+}

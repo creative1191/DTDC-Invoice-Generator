@@ -26,7 +26,7 @@
   background: #9faec2;
 }
 
-/* Print specific rules for pixel-perfect A4 DTDC receipts */
+/* Print specific rules for pixel-perfect A4 DTDC / Blue Dart / Delhivery receipts */
 @media print {
   @page {
     size: A4 portrait;
@@ -37,15 +37,36 @@
     margin: 0;
   }
 
-  body, #root, .min-h-screen, .flex-1 {
+  html, body {
     background: #ffffff !important;
     color: #000000 !important;
     padding: 0 !important;
     margin: 0 !important;
-    max-width: none !important;
     width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+  }
+
+  /* Reset all surrounding wrapper layout containers so zero top offset or margins occur */
+  #root,
+  .min-h-screen,
+  main,
+  [class*="col-span"],
+  [class*="space-y"],
+  .invoice-preview-wrapper {
+    background: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    max-width: none !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    display: block !important;
+    overflow: visible !important;
   }
 
   .no-print {
@@ -59,18 +80,66 @@
   .print-container {
     width: 210mm !important;
     max-width: 210mm !important;
+    height: auto !important;
+    max-height: 285mm !important;
     margin: 0 auto !important;
-    padding: 4mm !important;
+    padding: 9mm 8mm 9mm 8mm !important; /* Default 9mm top header & 9mm bottom footer margins */
     box-shadow: none !important;
     border: none !important;
+    background: #ffffff !important;
+    box-sizing: border-box !important;
+    page-break-before: avoid !important;
+    break-before: avoid !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    overflow: hidden !important;
+  }
+
+  .print-container.margin-normal {
+    padding: 9mm 8mm 9mm 8mm !important;
+  }
+
+  .print-container.margin-relaxed {
+    padding: 13mm 10mm 13mm 10mm !important;
+  }
+
+  .print-container.margin-compact {
+    padding: 5mm 6mm 5mm 6mm !important;
   }
 
   .print-container-landscape {
     width: 297mm !important;
     max-width: 297mm !important;
+    height: auto !important;
+    max-height: 200mm !important;
     margin: 0 auto !important;
-    padding: 6mm !important;
+    padding: 9mm 10mm 9mm 10mm !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #ffffff !important;
+    box-sizing: border-box !important;
     page: landscape-page;
+    page-break-before: avoid !important;
+    break-before: avoid !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    overflow: hidden !important;
+  }
+
+  .print-container-landscape.margin-normal {
+    padding: 9mm 10mm 9mm 10mm !important;
+  }
+
+  .print-container-landscape.margin-relaxed {
+    padding: 13mm 12mm 13mm 12mm !important;
+  }
+
+  .print-container-landscape.margin-compact {
+    padding: 5mm 8mm 5mm 8mm !important;
   }
 
   .a4-sheet-container {

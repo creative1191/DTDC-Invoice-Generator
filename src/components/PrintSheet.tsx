@@ -13,12 +13,20 @@ export const PrintSheet: React.FC<PrintSheetProps> = ({
   customLogoUrl,
   sheetRef,
 }) => {
+  const marginMode = data.printMargin || 'normal';
+  const marginClass =
+    marginMode === 'relaxed'
+      ? 'margin-relaxed p-4'
+      : marginMode === 'compact'
+      ? 'margin-compact p-2'
+      : 'margin-normal p-3';
+
   if (data.layoutMode === 'SINGLE_LANDSCAPE') {
     return (
       <div
         ref={sheetRef}
         id="dtdc-print-area"
-        className="print-container-landscape bg-white w-full max-w-[297mm] mx-auto shadow-md p-4 print:p-0 print:shadow-none"
+        className={`print-container-landscape ${marginClass} bg-white w-full max-w-[297mm] print:min-h-0 mx-auto shadow-md print:shadow-none`}
       >
         <DtdcBillLayout
           data={data}
@@ -39,8 +47,7 @@ export const PrintSheet: React.FC<PrintSheetProps> = ({
     <div
       ref={sheetRef}
       id="dtdc-print-area"
-      className="print-container bg-white w-full max-w-[210mm] mx-auto shadow-md p-2 print:p-0 print:shadow-none flex flex-col justify-between"
-      style={{ minHeight: '290mm' }}
+      className={`print-container ${marginClass} bg-white w-full max-w-[210mm] min-h-[285mm] print:min-h-0 mx-auto shadow-md print:shadow-none flex flex-col justify-between`}
     >
       {/* COPY 1: Always Sender's Copy */}
       <DtdcBillLayout

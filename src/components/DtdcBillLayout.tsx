@@ -30,12 +30,12 @@ export const DtdcBillLayout: React.FC<DtdcBillLayoutProps> = ({
 }) => {
   // If in Paper Save Mode, render COMPLETELY BLANK space (no text, no borders, no watermark)
   if (isBlank) {
-    return <div className="w-full h-[88mm] bg-transparent" />;
+    return <div className="w-full h-[85mm] bg-transparent" />;
   }
 
   const courierType = data.courier || 'DTDC';
   const courierConfig = COURIER_CONFIGS[courierType] || COURIER_CONFIGS.DTDC;
-  const heightClass = isLandscapeFull ? 'min-h-[185mm]' : 'min-h-[88mm] max-h-[91mm]';
+  const heightClass = isLandscapeFull ? 'min-h-[175mm]' : 'min-h-[85mm] max-h-[88mm]';
 
   return (
     <div

@@ -68,19 +68,19 @@ export async function downloadBillAsPdf(element: HTMLElement, data: DTDCBillData
     const pdfWidth = isLandscape ? 297 : 210;
     const pdfHeight = isLandscape ? 210 : 297;
 
-    // Calculate fitted dimensions
+    // Calculate fitted dimensions with balanced margins
     const imgProps = pdf.getImageProperties(imgData);
     const ratio = imgProps.width / imgProps.height;
-    let renderW = pdfWidth - 8;
+    let renderW = pdfWidth - 16;
     let renderH = renderW / ratio;
 
-    if (renderH > pdfHeight - 8) {
-      renderH = pdfHeight - 8;
+    if (renderH > pdfHeight - 18) {
+      renderH = pdfHeight - 18;
       renderW = renderH * ratio;
     }
 
     const posX = (pdfWidth - renderW) / 2;
-    const posY = 4;
+    const posY = (pdfHeight - renderH) / 2;
 
     pdf.addImage(imgData, 'PNG', posX, posY, renderW, renderH);
 

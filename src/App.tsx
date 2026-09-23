@@ -101,8 +101,14 @@ export default function App() {
 
   // OCR extraction callback
   const handleOcrExtracted = useCallback((extracted: OCRMatchResult, detectedAwb?: string) => {
+    // If OCR detected a different courier, sync active courier tab
+    if (extracted.detectedCourier && extracted.detectedCourier !== selectedCourier) {
+      handleSwitchCourier(extracted.detectedCourier);
+    }
+
     setBillData((prev) => ({
       ...prev,
+      courier: extracted.detectedCourier || prev.courier || selectedCourier,
       awb: extracted.awb || detectedAwb || prev.awb,
       origin: extracted.origin || prev.origin,
       dest: extracted.dest || prev.dest,
@@ -113,6 +119,10 @@ export default function App() {
       consigneeName: extracted.consigneeName || prev.consigneeName,
       consigneeAddress: extracted.consigneeAddress || prev.consigneeAddress,
       consigneePhone: extracted.consigneePhone || prev.consigneePhone,
+      consignorName: extracted.consignorName || prev.consignorName,
+      consignorAddress: extracted.consignorAddress || prev.consignorAddress,
+      consignorPhone: extracted.consignorPhone || prev.consignorPhone,
+      consignorGstin: extracted.consignorGstin || prev.consignorGstin,
       contentSpec: extracted.contentSpec || prev.contentSpec,
       declaredValue: extracted.declaredValue || prev.declaredValue,
       pieces: extracted.pieces || prev.pieces,
@@ -121,7 +131,7 @@ export default function App() {
       dim: extracted.dim || prev.dim,
       courierCharges: extracted.courierCharges !== undefined ? extracted.courierCharges : prev.courierCharges,
     }));
-  }, []);
+  }, [selectedCourier, handleSwitchCourier]);
 
   // Clear old data button logic
   const handleClearOldData = useCallback(() => {
@@ -265,6 +275,8 @@ export default function App() {
                   onDataExtracted={handleOcrExtracted}
                   onClearOldData={handleClearOldData}
                   currentAwb={billData.awb}
+                  currentCourier={selectedCourier}
+                  onSelectCourier={handleSwitchCourier}
                 />
 
                 <ConsignorForm
@@ -306,6 +318,7 @@ export default function App() {
                   onExportPdf={handleExportPdf}
                   onExportPng={handleExportPng}
                   onExportHtml={handleExportHtml}
+                  onUpdateField={updateField}
                 />
 
                 {exportNotice && (
@@ -316,7 +329,7 @@ export default function App() {
                 )}
 
                 {/* PREVIEW CONTAINER: EXACT A4 CANVAS */}
-                <div className="bg-[#e4e7ee] p-2 md:p-4 rounded-xl border border-gray-300 shadow-inner overflow-x-auto flex justify-center">
+                <div className="invoice-preview-wrapper bg-[#e4e7ee] p-2 md:p-4 rounded-xl border border-gray-300 shadow-inner overflow-x-auto flex justify-center">
                   <PrintSheet
                     data={billData}
                     customLogoUrl={customLogoUrl}
